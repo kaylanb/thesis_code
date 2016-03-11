@@ -1,7 +1,16 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+import itertools
 
+#seaborn color palettes
+def get_seaborn_colors():
+	'''returns list of 6 rgb values'''
+	sns.set_palette('colorblind')
+	return sns.color_palette() #list of 6 colors
+
+#commonly used plotting functions
 def hist_2yaxis(h1,h2,lab1=[],lab2=[],titles=[],fname=None):
     '''plots 2 panel histogram, each panel has 2 hists, display both at same heights by using double y axis
 	h1,h2 are lists of shape (2,N)
