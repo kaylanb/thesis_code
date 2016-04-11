@@ -51,3 +51,29 @@ def hist_2yaxis(h1,h2,lab1=[],lab2=[],titles=[],fname=None):
     ax[1].set_xlabel('R (AB)',**kwargs['text'])
     if fname is not None: plt.savefig(fname)
     plt.close()
+
+def multi_hist(nrow,ncol,h,titles=[],xlabs=[],ylabs=[],fname=''):
+	'''plots single histogram in each panel
+	h: shape (nrow*ncol,N points)'''
+	assert(h.shape[0] <= nrow*ncol)
+	assert(len(h.shape) == 2)
+	if nrow == 1 or ncol == 1: raise ValueError
+	#formatting
+	kwargs=dict(bar=dict(alpha=0.5),text=dict(fontsize=20)) 
+	mpl.rcParams['xtick.labelsize'] = kwargs['text']['fontsize']-10
+	mpl.rcParams['ytick.labelsize'] = kwargs['text']['fontsize']-10
+	#w,h=20,10
+	fig,ax=plt.subplots(nrow,ncol) #,figsize=(w,h))
+	plt.subplots_adjust(hspace=0.5,wspace=0.5)
+	cnt=0
+	maxcnt= h.shape[0]-1
+	for r in range(nrow):
+		for c in range(ncol):
+			if cnt <= maxcnt:
+				ax[r,c].hist(h[cnt,:],color='b',**kwargs['bar'])
+				if len(titles) > 1: ax[r,c].set_title('%s' % titles[cnt],**kwargs['text'])
+				if len(xlabs) > 1: ax[r,c].set_xlabel('%s' % xlabs[cnt],**kwargs['text'])
+				if len(ylabs) > 1: ax[r,c].set_ylabel('%s' % ylabs[cnt],**kwargs['text'])
+			cnt+=1
+	plt.savefig('hist_%s.png' % fname)
+	plt.close()
