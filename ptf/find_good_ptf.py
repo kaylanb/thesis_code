@@ -17,54 +17,54 @@ class Band(object):
         self.zp_img_expt= self.zp_img+ 2.5*np.log10(self.expt)
         self.zp_am1_expt= self.zp_am1+ 2.5*np.log10(self.expt)
 
-if __name__ == 'main':
-	import os
-	from argparse import ArgumentParser
-	import glob
-	from astropy.io import fits
-	import sys
-	from pickle import dump
+if __name__ == "__main__":
+    import os
+    from argparse import ArgumentParser
+    import glob
+    from astropy.io import fits
+    import sys
+    from pickle import dump
 
-	parser = ArgumentParser(description="test")
-	parser.add_argument("-search_str",action="store",help='root dir + search string for processed mosaic data')
-	args = parser.parse_args()
+    parser = ArgumentParser(description="test")
+    parser.add_argument("-search_str",action="store",help='root dir + search string for processed mosaic data',required=True)
+    args = parser.parse_args()
 
-	fns= glob.glob(args.search_str)
-	if len(fns) == 0: print 'WARNING, 0 files found'
-	r,g= Band(),Band()
-	for cnt,fn in enumerate(fns[:5]):
-		print 'reading image %d/%d, %s' % (cnt,len(fns),fn)
-		data=fits.open(fn)
-		hdr=data[0].header
-		try:
-			a= float(hdr['IMAGEZPT']) 
-			b= float(hdr['MAGZPT']) 
-			c= float(hdr['FWHMSEX']) 
-			d= float(hdr['EXPTIME']) 
-		except TypeError:
-			print 'bad image found: %s' % fn
-			print '---> zp_img=',hdr['IMAGEZPT'],'zp_am1=',hdr['MAGZPT'],'see=',hdr['FWHMSEX'],hdr['EXPTIME']
-			continue
-		if hdr['FILTER'].strip() == 'R':
-			r.zp_img.append( a )
-			r.zp_am1.append( b )
-			r.see.append( c )
-			r.expt.append( d )
-		elif hdr['FILTER'].strip() == 'g':
-			g.zp_img.append( a )
-			g.zp_am1.append( b )
-			g.see.append( c )
-			g.expt.append( d )
-		else:
-			print "hdr['FILTER'].strip()= ",hdr['FILTER'].strip() 
-			raise ValueError
-	print "%d/%d images are good" % (len(r.see)+len(g.see),len(fns))
-	r.nump()
-	g.nump()
-	r.zp_expt()
-	g.zp_expt()
-	print "saving pickle file"
-	fout=open('ptf_photometric.pickle','w')
-	dump((r,g),fout)
-	fout.close()
-	print "done"
+    fns= glob.glob(args.search_str)
+    if len(fns) == 0: print 'WARNING, 0 files found'
+    r,g= Band(),Band()
+    for cnt,fn in enumerate(fns):
+        print 'reading image %d/%d, %s' % (cnt,len(fns),fn)
+        data=fits.open(fn)
+        hdr=data[0].header
+        try:
+            a= float(hdr['IMAGEZPT']) 
+            b= float(hdr['MAGZPT']) 
+            c= float(hdr['FWHMSEX']) 
+            d= float(hdr['EXPTIME']) 
+        except TypeError:
+            print 'bad image found: %s' % fn
+            print '---> zp_img=',hdr['IMAGEZPT'],'zp_am1=',hdr['MAGZPT'],'see=',hdr['FWHMSEX'],hdr['EXPTIME']
+            continue
+        if hdr['FILTER'].strip() == 'R':
+            r.zp_img.append( a )
+            r.zp_am1.append( b )
+            r.see.append( c )
+            r.expt.append( d )
+        elif hdr['FILTER'].strip() == 'g':
+            g.zp_img.append( a )
+            g.zp_am1.append( b )
+            g.see.append( c )
+            g.expt.append( d )
+        else:
+            print "hdr['FILTER'].strip()= ",hdr['FILTER'].strip() 
+            raise ValueError
+    print "%d/%d images are good" % (len(r.see)+len(g.see),len(fns))
+    r.nump()
+    g.nump()
+    r.zp_expt()
+    g.zp_expt()
+    print "saving pickle file"
+    fout=open('ptf_photometric.pickle','w')
+    dump((r,g),fout)
+    fout.close()
+    print "done"
