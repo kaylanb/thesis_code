@@ -10,9 +10,9 @@ def radec_to_float(ra,dec):
 
 class Band(object):
     def __init__(self):
-        self.zp_img,self.zp_am1,self.see,self.expt= [],[],[],[]
+        self.zp_img,self.zp_am1,self.see,self.expt,self.am= [],[],[],[],[]
     def nump(self):
-        self.zp_img,self.zp_am1,self.see,self.expt= np.array(self.zp_img),np.array(self.zp_am1),np.array(self.see),np.array(self.expt)
+        self.zp_img,self.zp_am1,self.see,self.expt,self.am= np.array(self.zp_img),np.array(self.zp_am1),np.array(self.see),np.array(self.expt),np.array(self.am)
     def zp_expt(self):
         self.zp_img_expt= self.zp_img+ 2.5*np.log10(self.expt)
         self.zp_am1_expt= self.zp_am1+ 2.5*np.log10(self.expt)
@@ -41,6 +41,7 @@ if __name__ == "__main__":
             b= float(hdr['MAGZPT']) 
             c= float(hdr['FWHMSEX']) 
             d= float(hdr['EXPTIME']) 
+            e= float(hdr['AIRMASS'])
         except TypeError:
             print 'bad image found: %s' % fn
             print '---> zp_img=',hdr['IMAGEZPT'],'zp_am1=',hdr['MAGZPT'],'see=',hdr['FWHMSEX'],hdr['EXPTIME']
@@ -50,11 +51,13 @@ if __name__ == "__main__":
             r.zp_am1.append( b )
             r.see.append( c )
             r.expt.append( d )
+            r.am.append( e )
         elif hdr['FILTER'].strip() == 'g':
             g.zp_img.append( a )
             g.zp_am1.append( b )
             g.see.append( c )
             g.expt.append( d )
+            g.am.append( e )
         else:
             print "hdr['FILTER'].strip()= ",hdr['FILTER'].strip() 
             raise ValueError
