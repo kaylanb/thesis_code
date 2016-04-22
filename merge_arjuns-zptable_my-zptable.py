@@ -13,7 +13,7 @@ a=fits_table(args.arjuns)
 m=fits_table(args.mine)
 comb=fits_table(args.mine) #copy of mine
 #fill zeros in my table for fields will fill in from arjun's table
-cols= ['ccdzpt','ccdzpta','ccdzptb','ccdphoff','ccdphrms','ccdskyrms','ccdraoff','ccddecoff','ccdtransp','ccdnstar','ccdnmatch','ccdnmatcha','ccdnmatchb','ccdmdncol'] #fwhm,arawgain
+cols= ['zpt','ccdzpt','ccdzpta','ccdzptb','ccdphoff','ccdphrms','ccdskyrms','ccdraoff','ccddecoff','ccdtransp','ccdnstar','ccdnmatch','ccdnmatcha','ccdnmatchb','ccdmdncol'] #fwhm,arawgain
 if args.camera == '90prime':
     cols+= ['arawgain','avsky','mjd_obs','expnum']
     for rm_col in ['ccdphoff','ccdskyrms','ccdtransp']: cols.pop( cols.index(rm_col) ) #ians bok ccds.fits does not have these
