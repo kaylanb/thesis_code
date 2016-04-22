@@ -130,6 +130,7 @@ def exposure_metadata(filenames, hdus=None, trim=None):
     T.rename('JULIAN'.lower(), 'MJD_OBS'.lower()) #MJD-OBS is name for julian from decam parser
     
     T.ccdname = np.array([t.strip() for t in T.ccdname])
+    T.extname = np.array([t.strip() for t in T.ccdname])
     T.ccdnum = np.array([t.strip()[-1] for t in T.ccdname])
     
     T.filter = np.array([s.strip()[0] for s in T.filter])
