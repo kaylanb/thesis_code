@@ -103,7 +103,7 @@ def exposure_metadata(filenames, hdus=None, trim=None):
             for k,d in hdrkeys:
                 vals[k].append(hdr.get(k, d))
 
-            vals['IMAGE_FILENAME'].append( 'bok/'+os.path.basename(cpfn) )
+            vals['IMAGE_FILENAME'].append( '90prime/'+os.path.basename(cpfn) )
             vals['IMAGE_HDU'].append(hdu)
             vals['WIDTH'].append(int(W))
             vals['HEIGHT'].append(int(H))
