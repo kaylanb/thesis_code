@@ -26,7 +26,10 @@ for fn in a.get('filename'):
         i_me= np.all((i_me_fn,i_me_ccd),axis=0)
         assert(np.any(i_me))
         #fill in arjun's info
-        for col in cols: comb.get(col)[i_me]= a.get(col)[i_arj]
+        for col in cols: 
+            #if 'zpt' in col and m.get('camera')[i_me] == 'mosaic': #no need for this, was to correct arjun's zpts for exp time
+            #    comb.get(col)[i_me]= a.get(col)[i_arj] +2.5*np.log10(m.get('exptime')[i_me])
+            comb.get(col)[i_me]= a.get(col)[i_arj]
 #write new table
 comb.writeto('arjun-my-%s-ccds.fits' % args.camera)
 print 'done'
