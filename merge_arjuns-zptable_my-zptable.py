@@ -6,7 +6,7 @@ import os
 parser = ArgumentParser(description="test")
 parser.add_argument("-arjuns",action="store",help='from decstat,mostat,bokstat',required=True)
 parser.add_argument("-mine",action="store",help='from my header parsing script',required=True)
-parser.add_argument("-camera",choices=['mosaic','bok','decam'],action="store",help='camera zps are for',required=True)
+parser.add_argument("-camera",choices=['mosaic','90prime','decam'],action="store",help='camera zps are for',required=True)
 args = parser.parse_args()
 
 a=fits_table(args.arjuns)
@@ -14,7 +14,7 @@ m=fits_table(args.mine)
 comb=fits_table(args.mine) #copy of mine
 #fill zeros in my table for fields will fill in from arjun's table
 cols= ['ccdzpt','ccdzpta','ccdzptb','ccdphoff','ccdphrms','ccdskyrms','ccdraoff','ccddecoff','ccdtransp','ccdnstar','ccdnmatch','ccdnmatcha','ccdnmatchb','ccdmdncol'] #fwhm,arawgain
-if args.camera == 'bok':
+if args.camera == '90prime':
     cols+= ['arawgain','avsky','mjd_obs','expnum']
     for rm_col in ['ccdphoff','ccdskyrms','ccdtransp']: cols.pop( cols.index(rm_col) ) #ians bok ccds.fits does not have these
 for col in cols: comb.set(col, np.zeros(m.get('ra').shape).astype(a.get(col).dtype) ) #junk for now, but with correct dtype
