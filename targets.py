@@ -1,18 +1,29 @@
 import numpy as np
 
+def build_nan_inf_mask(data,bands):
+	'''np mask array negative fluxes that give NaN or inf when convert to AB magnitude after taking log
+	instead of removing these indices, the mask allows comparison of telescopes (say matched decam vs. bok/mosaic)
+	'''
+	for b in bands:
+		test= np.log10(data[b+'flux_ext'])
+		data[b+'flux_ext']= np.ma.masked_array(data[b+'flux_ext'], \
+									mask=np.any((np.isnan(test),np.isinf(test)),axis=0))
+
 
 class PTF(object):
-	def __init__(self,data,cut_neg_flux=False):
+	def __init__(self,data): #,cut_neg_flux=False):
 		#data from psql db txt file
 		self.data= data
+		self.bands=['g','r']
 		#convert to AB mag and select targets
-		if cut_neg_flux: self.cut_neg_fluxes()
+		#if cut_neg_flux: self.cut_neg_fluxes()
 		self.flux_w_ext()
+		build_nan_inf_mask(self.data,self.bands) #mask out, don't remove neg. fluxes
 		self.flux_to_mag_ab()
 	
-	def cut_neg_fluxes(self):
-		ind= np.all((self.data['gflux']>0,self.data['rflux']>0), axis=0)
-		for key in self.data.keys(): self.data[key]= self.data[key][ind]
+	#def cut_neg_fluxes(self):
+	#	ind= np.all((self.data['gflux']>0,self.data['rflux']>0), axis=0)
+	#	for key in self.data.keys(): self.data[key]= self.data[key][ind]
 
 	def flux_w_ext(self):
 		for b in ['g', 'r']:
@@ -24,15 +35,16 @@ class PTF(object):
 
 
 class DECaLS(object):
-	def __init__(self,data,wise=True,cut_neg_flux=False):
+	def __init__(self,data,wise=True): #,cut_neg_flux=False):
 		#data from psql db txt file
 		self.data= data
 		self.wise= wise
 		self.bands= ['g', 'r', 'z']
 		if self.wise: self.bands+= ['w1','w2']
 		#convert to AB mag and select targets
-		if cut_neg_flux: self.cut_neg_fluxes()
+		#if cut_neg_flux: self.cut_neg_fluxes()
 		self.flux_w_ext()
+		build_nan_inf_mask(self.data,self.bands) #mask out, don't remove neg. fluxes
 		self.flux_to_mag_ab()
 		#indices for each class
 		#self.BGS_cuts()
@@ -43,15 +55,15 @@ class DECaLS(object):
 			self.data['non_ptsrc']= np.any((self.data['qso'],self.data['lrg'],self.data['bgs'],self.data['elg']), axis=0)
 			self.data['ptsrc']= self.data['non_ptsrc'] == False
 
-	def cut_neg_fluxes(self):
-		ind= np.all((self.data['gflux']>0,self.data['rflux']>0, self.data['zflux']>0), axis=0)
-		if self.wise: ind= np.all((ind,self.data['w1flux']>0,self.data['w2flux']>0), axis=0)
-		for key in self.data.keys(): self.data[key]= self.data[key][ind]
+	#def cut_neg_fluxes(self):
+	#	ind= np.all((self.data['gflux']>0,self.data['rflux']>0, self.data['zflux']>0), axis=0)
+	#	if self.wise: ind= np.all((ind,self.data['w1flux']>0,self.data['w2flux']>0), axis=0)
+	#	for key in self.data.keys(): self.data[key]= self.data[key][ind]
 
 	def flux_w_ext(self):
 		for b in self.bands:
 			self.data[b+'flux_ext']= self.data[b+'flux']/self.data[b+'_ext']
-
+	
 	def flux_to_mag_ab(self):
 		for b in self.bands:
 			self.data[b+'mag']= 22.5 -2.5*np.log10(self.data[b+'flux_ext'])
