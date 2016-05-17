@@ -110,11 +110,11 @@ def exposure_metadata(filenames, hdus=None, trim=None):
             #new column info
             vals['EXPNUM'][-1]= int(F[0].header['IMAGEID'])
             #FWHM and SEEING not in image fits header, get it from psfex file
-            F_psfex = fits.open(os.path.join(os.path.dirname(fn),'./psfex',os.path.basename(fn)))
-            vals['FWHM'][-1]= float(F_psfex[hdu].header['PSF_FWHM']) 
+            #F_psfex = fits.open(os.path.join(os.path.dirname(fn),'./psfex',os.path.basename(fn)))
+            #vals['FWHM'][-1]= float(F_psfex[hdu].header['PSF_FWHM']) 
             # compute seeing from FWHM
-            pixscale = 0.445
-            vals['SEEING'][-1]=  pixscale*vals['FWHM'][-1]
+            #pixscale = 0.445
+            #vals['SEEING'][-1]=  pixscale*vals['FWHM'][-1]
 
     T = fits_table()
     for k,d in allkeys:
