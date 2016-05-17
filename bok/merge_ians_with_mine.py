@@ -31,6 +31,7 @@ for fn in m.get('image_filename'):
         #fill in arjun's info
         for col in cols: 
             comb.get(col)[i_me]= a.get(col)[i_arj]
+			if 'zpt' in col: comb.get(col)[i_me]+= 2.5*np.log10(m.get('exptime')[i_me]) #correct for exptime
 			#seeing --> fwhm 
 			comb.get('fwhm')[i_me]= ians.get('seeing')[i_arj] / args.pixscale
 #write new table
