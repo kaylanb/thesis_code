@@ -15,13 +15,15 @@ def load_ofile(fn,getcols,str_kws=[]):
 	#only tuples to np.loadtxt
 	for k in dtype.keys(): dtype[k]= tuple(dtype[k])
 	#load everything
+	print 'getcols= ',getcols
 	data= np.loadtxt(fn,skiprows=2,usecols=getcols,delimiter='|',dtype=dtype)
 	#return as dict
 	data= dict((key,data[key]) for key in keys)
 	#check matched ra,dec if exist
-	if 'dp_ra' in data.keys() and 'dr2_ra' in data.keys():
-		assert( (data['dp_ra'] - data['dr2_ra']).max() < 1e-3)
-		assert( (data['dp_dec'] - data['dr2_dec']).max() < 1e-3)
+	#if 'dp_ra' in data.keys() and 'dr2_ra' in data.keys():
+	#assert( (data['dr2_dec'] - data['dp_dec']).max() < 1e-3)
+	#	assert( (data['dp_ra'] - data['dr2_ra']).max() < 1e-3)
+	#		assert( (data['dp_dec'] - data['dr2_dec']).max() < 1e-3)
 	return data
 #
 #	fin=open(fn,'r')
