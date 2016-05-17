@@ -107,14 +107,8 @@ def exposure_metadata(filenames, hdus=None, trim=None):
             vals['IMAGE_HDU'].append(hdu)
             vals['WIDTH'].append(int(W))
             vals['HEIGHT'].append(int(H))
-            #new column info
+            #WARNING, is this Bok exposure number?
             vals['EXPNUM'][-1]= int(F[0].header['IMAGEID'])
-            #FWHM and SEEING not in image fits header, get it from psfex file
-            #F_psfex = fits.open(os.path.join(os.path.dirname(fn),'./psfex',os.path.basename(fn)))
-            #vals['FWHM'][-1]= float(F_psfex[hdu].header['PSF_FWHM']) 
-            # compute seeing from FWHM
-            #pixscale = 0.445
-            #vals['SEEING'][-1]=  pixscale*vals['FWHM'][-1]
 
     T = fits_table()
     for k,d in allkeys:
@@ -154,18 +148,19 @@ def exposure_metadata(filenames, hdus=None, trim=None):
     return T
 
 parser = argparse.ArgumentParser(description="test")
-parser.add_argument("-search_str",action="store",help='path/to/images/ + str to search with')
+parser.add_argument("-bok_image_dir",action="store",help='path/to/bok/images')
 args = parser.parse_args()
 
-fns= glob.glob(args.search_str)
+fns= glob.glob(os.path.join(args.bok_image_dir,'*.fits'))
 if len(fns) == 0: raise ValueError
-#.wht.fits and .fits look similar, remove wht
+#remove .wht.fits from list
 ibad=[]
 for i in range(len(fns)):
     if 'wht' in fns[i]: ibad.append(i)
 fns= np.delete(np.array(fns),ibad)
 #make ccd table
 T=exposure_metadata(fns)
+#print table
 for i in T.get_columns(): print('%s=' % i,T.get(i))
-T.writeto('bok-ccds.fits')
+T.writeto('simple-bok-ccds.fits')
 print 'wrote ccds table'
