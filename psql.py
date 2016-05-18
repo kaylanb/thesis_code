@@ -8,6 +8,7 @@ def load_ofile(fn,getcols,str_kws=[]):
 	keys=fin.readline()
 	fin.close()
 	keys= np.array(keys.split('|'))[getcols]
+	keys= list(keys)
 	for i in range(len(keys)): keys[i]= keys[i].strip()
 	dtype=dict(formats=['f4']*len(keys), names=keys)  #holds more than 4 decimals
 	#change str_kws to type string

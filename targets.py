@@ -35,12 +35,12 @@ class PTF(object):
 
 
 class DECaLS(object):
-	def __init__(self,data,wise=True): #,cut_neg_flux=False):
+	def __init__(self,data,w1=False,w2=False): #,cut_neg_flux=False):
 		#data from psql db txt file
 		self.data= data
-		self.wise= wise
 		self.bands= ['g', 'r', 'z']
-		if self.wise: self.bands+= ['w1','w2']
+		if w1: self.bands+= ['w1']
+		if w2: self.bands+= ['w2']
 		#convert to AB mag and select targets
 		#if cut_neg_flux: self.cut_neg_fluxes()
 		self.flux_w_ext()
@@ -49,9 +49,9 @@ class DECaLS(object):
 		#indices for each class
 		#self.BGS_cuts()
 		self.ELG_cuts()
-		if self.wise:
-			self.LRG_cuts()
-			self.QSO_cuts()
+		self.LRG_cuts()
+		self.QSO_cuts()
+		if 'w1' in self.bands and 'w2' in self.bands:
 			self.data['non_ptsrc']= np.any((self.data['qso'],self.data['lrg'],self.data['bgs'],self.data['elg']), axis=0)
 			self.data['ptsrc']= self.data['non_ptsrc'] == False
 
@@ -74,12 +74,14 @@ class DECaLS(object):
 							axis=0)
 
 	def LRG_cuts(self):
-		self.data['i_lrg']= np.all((self.data['rmag']<23.0,\
-						   self.data['zmag']<20.56,\
-						   self.data['w1mag']<19.35,\
-						   self.data['rmag']-self.data['zmag']> 1.6,\
-						   self.data['rmag']-self.data['w1mag']> 1.33*(self.data['rmag']-self.data['zmag']) -0.33),\
-							axis=0)
+		if 'w1' in self.bands:
+			self.data['i_lrg']= np.all((self.data['rmag']<23.0,\
+							   self.data['zmag']<20.56,\
+							   self.data['w1mag']<19.35,\
+							   self.data['rmag']-self.data['zmag']> 1.6,\
+							   self.data['rmag']-self.data['w1mag']> 1.33*(self.data['rmag']-self.data['zmag']) -0.33),\
+								axis=0)
+		else: pass
 
 	def ELG_cuts(self):
 		self.data['i_elg']= np.all((self.data['rmag']<23.4,\
@@ -90,13 +92,15 @@ class DECaLS(object):
 							axis=0)
 
 	def QSO_cuts(self):
-		wavg= 0.75*self.data['w1mag']+ 0.25*self.data['w2mag']
-		self.data['i_qso']= np.all((self.data['type']=='PSF ',\
-							self.data['rmag']<23.0,
-						   self.data['gmag']-self.data['rmag']< 1.0,\
-							self.data['rmag']-self.data['zmag']> -0.3,\
-						   self.data['rmag']-self.data['zmag']< 1.1,\
-							self.data['rmag']-wavg> 1.2*(self.data['gmag']-self.data['rmag']) -0.4),\
-							axis=0)
+		if 'w1' in self.bands and 'w2' in self.bands:
+			wavg= 0.75*self.data['w1mag']+ 0.25*self.data['w2mag']
+			self.data['i_qso']= np.all((self.data['type']=='PSF ',\
+								self.data['rmag']<23.0,
+							   self.data['gmag']-self.data['rmag']< 1.0,\
+								self.data['rmag']-self.data['zmag']> -0.3,\
+							   self.data['rmag']-self.data['zmag']< 1.1,\
+								self.data['rmag']-wavg> 1.2*(self.data['gmag']-self.data['rmag']) -0.4),\
+								axis=0)
+		else: pass
 
 	
