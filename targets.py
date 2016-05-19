@@ -9,8 +9,9 @@ def build_nan_inf_mask(data,bands):
 		data[b+'flux_ext']= np.ma.masked_array(data[b+'flux_ext'], \
 									mask=np.any((np.isnan(test),np.isinf(test)),axis=0))
 
-def read_from_tractor_cat(fn):
-	'''returns data dict for DECaLS()'''
+def read_from_tractor_cat(fn,same_keys=['ra','dec','type']):
+	'''returns data dict for DECaLS()
+	same_keys -- keys that have identical names b/w tractor cat and data dict expected by DeCALS()'''
 	from fits import tractor_cat
 	a=tractor_cat(fn)
 	data={}
