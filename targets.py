@@ -67,6 +67,7 @@ class DECaLS(object):
 	def flux_to_mag_ab(self):
 		for b in self.bands:
 			self.data[b+'mag']= 22.5 -2.5*np.log10(self.data[b+'flux_ext'])
+			self.data[b+'mag_ivar']= np.power(np.log(10.)/2.5*self.data[b+'flux'], 2)* self.data[b+'flux_ivar']
 			
 	def BGS_cuts(self):
 		self.data['i_bgs']= np.all((self.data['type'] != 'PSF ',\
