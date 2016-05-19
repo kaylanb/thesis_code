@@ -9,6 +9,42 @@ def build_nan_inf_mask(data,bands):
 		data[b+'flux_ext']= np.ma.masked_array(data[b+'flux_ext'], \
 									mask=np.any((np.isnan(test),np.isinf(test)),axis=0))
 
+def read_from_tractor_cat(fn):
+	'''returns data dict for DECaLS()'''
+	from fits import tractor_cat
+	a=tractor_cat(fn)
+	data={}
+	for k in same_keys:
+		data[k]= a[k]
+	data['type']= np.char.strip(data['type'])
+	for band,ind in zip(['g','r','z'],[1,2,4]):
+		data[band+'flux']= a['decam_flux'][:,ind]
+		data[band+'flux_ivar']= a['decam_flux_ivar'][:,ind]
+		data[band+'_ext']= a['decam_mw_transmission'][:,ind]
+	for band,ind in zip(['w1'],[0]):
+		data[band+'flux']= a['wise_flux'][:,ind]
+		data[band+'flux_ivar']= a['wise_flux_ivar'][:,ind]
+		data[band+'_ext']= a['wise_mw_transmission'][:,ind]
+	return data
+
+def read_from_psql_file(fn,use_cols=range(14),str_cols=['type']):
+	'''return data dict for DECaLS()
+	fn -- file name of psql db txt file
+	use_cols -- list of column indices to get, first column is 0
+	str_cols -- list of column names that should have type str not float'''
+	#get column names
+	fin=open(fn,'r')
+	cols=fin.readline()
+	fin.close()
+	cols= np.char.strip( np.array(cols.split('|'))[use_cols] )
+	#get data
+	arr=np.loadtxt(fn,dtype='str',comments='(',delimiter='|',skiprows=2,usecols=use_cols)
+	data={}
+	for i,col in enumerate(cols):
+		if col in str_cols: data[col]= np.char.strip( arr[:,i].astype(str) )
+		else: data[col]= arr[:,i].astype(float)
+	return data
+
 
 class PTF(object):
 	def __init__(self,data): #,cut_neg_flux=False):
