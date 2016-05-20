@@ -47,10 +47,13 @@ def read_from_psql_file(fn,use_cols=range(14),str_cols=['type']):
 	return data
 
 def data_extract(data,indices):
-	'''data -- returned by read_from_*
-	indicies -- return data but only at these indices'''
-	for k in data.keys(): data[k]= data[k][indices]
-	return data
+    '''data -- returned by read_from_*
+    indicies -- return data but only at these indices'''
+    #return {data[k][indices] for 
+    cpy={}
+    for k in data.keys(): 
+        cpy[k]= data[k][indices]
+    return cpy
 
 
 class PTF(object):
