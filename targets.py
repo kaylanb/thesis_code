@@ -46,6 +46,12 @@ def read_from_psql_file(fn,use_cols=range(14),str_cols=['type']):
 		else: data[col]= arr[:,i].astype(float)
 	return data
 
+def data_extract(data,indices):
+	'''data -- returned by read_from_*
+	indicies -- return data but only at these indices'''
+	for k in data.keys(): data[k]= data[k][indices]
+	return data
+
 
 class PTF(object):
 	def __init__(self,data): #,cut_neg_flux=False):
