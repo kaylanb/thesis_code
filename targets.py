@@ -1,13 +1,16 @@
 import numpy as np
 
 def build_nan_inf_mask(data,bands):
-	'''np mask array negative fluxes that give NaN or inf when convert to AB magnitude after taking log
-	instead of removing these indices, the mask allows comparison of telescopes (say matched decam vs. bok/mosaic)
-	'''
-	for b in bands:
-		test= np.log10(data[b+'flux_ext'])
-		data[b+'flux_ext']= np.ma.masked_array(data[b+'flux_ext'], \
-									mask=np.any((np.isnan(test),np.isinf(test)),axis=0))
+    '''np mask array negative fluxes that give NaN or inf when convert to AB magnitude after taking log
+    instead of removing these indices, the mask allows comparison of telescopes (say matched decam vs. bok/mosaic)
+    '''
+    for b in bands:
+        test= np.log10(data[b+'flux_ext'])
+        data[b+'flux_ext']= np.ma.masked_array(data[b+'flux_ext'], \
+                                    mask=np.any((np.isnan(test),np.isinf(test)),axis=0))
+    #mask out if ALL bands if any ONE band is masked
+    mask= np.any((data['gflux_ext'].mask,data['rflux_ext'].mask,data['zflux_ext'].mask),axis=0)
+    for b in bands: data[b+'flux_ext'].mask= mask
 
 def read_from_tractor_cat(fn,same_keys=['ra','dec','type']):
 	'''returns data dict for DECaLS()
