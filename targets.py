@@ -73,13 +73,42 @@ class PTF(object):
 
 class DECaLS(object):
 	def __init__(self,data,w1=False,w2=False): #,cut_neg_flux=False):
-		#data from psql db txt file
+		#store data, data from psql db txt file or tractor cat
 		self.data= data
 		self.bands= ['g', 'r', 'z']
 		if w1: self.bands+= ['w1']
 		if w2: self.bands+= ['w2']
-		#mask
-		self.apply_mask() 
+		#create,apply masks
+		self.create_and_apply_masks() 
+		#calculate everything using masks
+		self.calc_everything()
+		#update masks for data and everything calc from data
+		#self.update_masks_for_everything(mask=None,mask_wise=None)
+		print "DECaLS object initialized"
+	
+	def create_and_apply_masks(self):
+		'''create mask and mask_wise, apply them to all self.data.keys() fields'''
+		#PRIMARY: mask is ANY of the following conditions are true
+		self.mask=np.any((self.data['gflux'] <= 0,\
+						self.data['rflux'] <= 0,\
+						self.data['zflux'] <= 0),axis=0)
+		#SECONDARY: mask + where wise fluxes < 0, only used when use wise fluxes for something, eg lrg selection
+		if 'w1' in self.bands and 'w2' in self.bands:
+			self.mask_wise= np.any((self.mask,\
+									self.data['w1flux'] <= 0,\
+									self.data['w1flux'] <= 0),axis=0)
+		elif 'w1' in self.bands: 
+			self.mask_wise= np.any((self.mask,\
+									self.data['w1flux'] <= 0),axis=0)
+		else: self.mask_wise= self.mask
+		#propogate masks through data
+		for key in self.data.keys():
+			if key.startswith('w1') or key.startswith('w2'):
+				self.data[key]= np.ma.masked_array(self.data[key],mask=self.mask_wise)
+			else: 
+				self.data[key]= np.ma.masked_array(self.data[key],mask=self.mask)
+	def calc_everything(self):
+		'''compute flux/ext, mags, etc., vals automatically masked where self.mask,self.mask_wise true '''
 		#convert to AB mag and select targets
 		self.flux_w_ext()
 		self.flux_to_mag_ab()
@@ -89,32 +118,21 @@ class DECaLS(object):
 		self.LRG_cuts()
 		self.QSO_cuts()
 		#sanity checks
-		#self.assert_same_mask()
-		#self.assert_TS_not_where_masked()
-	def apply_mask(self,add_mask=None):
-		'''create mask or combine existing mask with add_mask, then apply it to all self.data.keys() fields'''
-		if add_mask is None:
-			self.mask=np.all((self.data['gflux'] <= 0,\
-							self.data['rflux'] <= 0,\
-							self.data['zflux'] <= 0),axis=0)
-		else: 
-			self.mask= np.any((mask,add_mask),axis=0)
-				#test= np.log10(data[b+'flux_ext'])
-				#data[b+'flux_ext']= np.ma.masked_array(data[b+'flux_ext'], \
-				#							mask=np.any((np.isnan(test),np.isinf(test)),axis=0))
-		for key in self.data.keys():
-			print "applying mask to key= %s" % key
-			self.data[key]= np.ma.masked_array(self.data[key],mask=self.mask)
+		self.assert_same_mask()
+		self.assert_TS_not_where_masked()
+		
 	def assert_same_mask(self):
 		'''self.mask should be applied to all self.data.keys() fields'''
 		for key in self.data.keys():
-			print 'key=',key,"np.where(self.data[key].mask)[0].size=",np.where(self.data[key].mask)[0].size,"np.where(self.mask)[0].size",np.where(self.mask)[0].size
-			if key not in ['w1mag']: assert(np.all(self.data[key].mask == self.mask))
+			if key.startswith('w1') or key.startswith('w2'):
+				assert(np.all(self.data[key].mask == self.mask_wise))
+			else:
+				assert(np.all(self.data[key].mask == self.mask))
 	def assert_TS_not_where_masked(self):
 		assert(np.all( self.bgs[self.mask] == False )) #no galaxies should be selected where mask is true
-		assert(np.all( self.lrg[self.mask] == False )) 
 		assert(np.all( self.elg[self.mask] == False )) 
-		assert(np.all( self.qso[self.mask] == False )) 
+		assert(np.all( self.lrg[self.mask_wise] == False )) 
+		assert(np.all( self.qso[self.mask_wise] == False )) 
 	def count_total(self):
 		'''return total number of objects'''
 		return self.data['ra'].size
@@ -125,7 +143,6 @@ class DECaLS(object):
 	def flux_w_ext(self):
 		for b in self.bands:
 			self.data[b+'flux_ext']= self.data[b+'flux']/self.data[b+'_ext']
-
 	def flux_to_mag_ab(self):
 		for b in self.bands:
 			self.data[b+'mag']= 22.5 -2.5*np.log10(self.data[b+'flux_ext'])
@@ -142,7 +159,9 @@ class DECaLS(object):
 								self.data['w1mag']<19.35,\
 								self.data['rmag']-self.data['zmag']> 1.6,\
 								self.data['rmag']-self.data['w1mag']> 1.33*(self.data['rmag']-self.data['zmag']) -0.33),axis=0)
-		else: print "WARNING, cannot make LRG cut because no W1"
+		else:
+			self.lrg= np.zeros(self.data['rmag'].size,dtype=bool) #python 0 = False
+			print "WARNING: no LRGs selected because no W1"
 
 	def ELG_cuts(self):
 		self.elg= np.all((self.data['rmag']<23.4,\
@@ -160,6 +179,25 @@ class DECaLS(object):
 							self.data['rmag']-self.data['zmag']> -0.3,\
 							self.data['rmag']-self.data['zmag']< 1.1,\
 							self.data['rmag']-wavg> 1.2*(self.data['gmag']-self.data['rmag']) -0.4),axis=0)
-		else: print "WARNING, cannot make QSO cut because no W1,W2"
-
+		else: 
+			self.qso= np.zeros(self.data['rmag'].size,dtype=bool) #python 0 = False
+			print "WARNING: no QSOs selected because no W1,W2"
+	#non-fundamental
+	def update_masks_for_everything(self, mask=None,mask_wise=None):
+		if mask is not None: self.mask= np.any((self.mask,mask),axis=0)
+		if mask_wise is not None: self.mask_wise= np.any((self.mask_wise,mask_wise),axis=0)  
+		#update masks
+		for key in self.data.keys():
+			if key.startswith('w1') or key.startswith('w2'):
+				self.data[key].mask= self.mask_wise #data mask is mask_wise
+			else: 
+				self.data[key].mask= self.mask
+		#redo TS
+		self.BGS_cuts()
+		self.ELG_cuts()
+		self.LRG_cuts()
+		self.QSO_cuts()
+		#sanity checks
+		self.assert_same_mask()
+		self.assert_TS_not_where_masked()
 	
