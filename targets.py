@@ -13,6 +13,7 @@ def read_from_tractor_cat(fn,same_keys=['ra','dec','type']):
 		data[band+'flux']= a['decam_flux'][:,ind]
 		data[band+'flux_ivar']= a['decam_flux_ivar'][:,ind]
 		data[band+'_ext']= a['decam_mw_transmission'][:,ind]
+		data[band+'_psf_fwhm']= a['decam_psfsize'][:,ind]
 	for band,ind in zip(['w1'],[0]):
 		data[band+'flux']= a['wise_flux'][:,ind]
 		data[band+'flux_ivar']= a['wise_flux_ivar'][:,ind]
