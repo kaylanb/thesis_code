@@ -1,7 +1,21 @@
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import numpy as np
+from astropy.io import fits
+from scipy.ndimage import imread
 
-def imshow_image_plus_stamp(img,sx,sy,test=False):
+def image_array_from_fits(fn):
+    '''use fits instead of jpg!'''
+    img=fits.open(fn)
+    return img[1].data
+
+def image_array_from_png(fn):
+    '''reading from png is fine (but NOT jpg!)'''
+    return imread(fn)
+
+def image_plus_stamp(img,sx,sy,test=False):
     '''img -- full image
     sx -- stamp x range, list or tuple (min,max)
     sy -- ditto for y
