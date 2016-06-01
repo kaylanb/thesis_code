@@ -3,8 +3,18 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+import os
 from astropy.io import fits
 from scipy.ndimage import imread
+
+def get_basename(fn):
+    '''returns basename without fits or fits.gz extension'''
+    base=os.path.basename(fn)
+    if '.fits.fz' in base: return base.replace('.fits.fz','')
+    elif '.fits' in base: return base.replace('.fits','')
+    else: 
+        print "fn=%s" % fn
+        raise ValueError
 
 def image_array_from_fits(fn):
     '''use fits instead of jpg!'''
@@ -15,45 +25,35 @@ def image_array_from_png(fn):
     '''reading from png is fine (but NOT jpg!)'''
     return imread(fn)
 
-def image_plus_stamp(img,sx,sy,name,test=False):
-    '''img -- full image
+def add_box(ax, sx,sy,img_shape,test=False):
+    '''draw yellow box on image already drawn onto ax
+    ax -- axis to draw to
     sx -- stamp x range, list or tuple (min,max)
     sy -- ditto for y
-    name -- file name
     test -- set to True to set sx,sy to 25-75% of image to see what this func does'''
-    if test: 
-        sx= [int(0.25*img.shape[1]),int(0.75*img.shape[1])]
-        sy= [int(0.25*img.shape[0]),int(0.75*img.shape[0])]
-    assert(img.shape[0] >= sy[1]-sy[0]) #compare sy with image[0] b/c inverted array indices
-    assert(img.shape[1] >= sx[1]-sx[0])
-    kwargs=dict(origin='lower',interpolation='nearest',cmap='gray')
-    fig,ax=plt.subplots(1,2) #,sharey=True,sharex=True)
-    plt.subplots_adjust(wspace=0.4) #,hspace=0.2)
-    #draw full image + stamp + yellow outline
-    ax[0].imshow(img,**kwargs)
+    assert(img_shape[0] >= sy[1]-sy[0]) #compare sy with image[0] b/c inverted array indices
+    assert(img_shape[1] >= sx[1]-sx[0])
     p= patches.Rectangle((sx[0],sy[0]), sx[1]-sx[0], sy[1]-sy[0],
                                   fc = 'none', ec = 'yellow')
-    ax[0].add_patch(p)
-    #draw just stamp
-    new_img=np.zeros(img.shape)
-    new_img[sy[0]:sy[1],sx[0]:sx[1]]= img[sy[0]:sy[1],sx[0]:sx[1]]
-    ax[1].imshow(new_img,**kwargs)
-    #finish plot
-    for i in range(2):
-        ax[i].tick_params(direction='out')
-        ax[i].set_xlim(0,img.shape[0])
-        ax[i].set_ylim(0,img.shape[1])
-    plt.savefig('test.png', bbox_inches='tight',dpi=150) # bbox_extra_artists=[xlab,ylab], 
+    ax.add_patch(p)
 
-def two_images(images,name):
-    '''images= [img1,img2]
-    name -- filename'''
+def image_v_stamp(images,name,sx=None,sy=None,multi_sims=False,test=False):
+    '''images= [img1,img2,img3]
+    name -- filename
+    sx,sy optional x and y rng for yellow box
+    multi_sims -- if True sx,sy is a list of x and y ranges for multiple sims, if False sx,sy is a single x,y range'''
     kwargs=dict(origin='lower',interpolation='nearest',cmap='gray')
-    fig,ax=plt.subplots(1,2) #,sharey=True,sharex=True)
+    ncol= len(images)
+    fig,ax=plt.subplots(1,ncol) #,sharey=True,sharex=True)
     plt.subplots_adjust(wspace=0.4) #,hspace=0.2)
-    for i in range(2):
+    for i,title in zip(range(ncol),['image+sims','image','sims']):
         ax[i].imshow(images[i],**kwargs)
         ax[i].tick_params(direction='out')
         ax[i].set_xlim(0,images[i].shape[0])
         ax[i].set_ylim(0,images[i].shape[1])
-    plt.savefig(name, bbox_inches='tight',dpi=150) # bbox_extra_artists=[xlab,ylab], 
+        ti=ax[i].set_title(title)
+        if sx is not None and sy is not None: 
+            if multi_sims: 
+                for xrng,yrng in zip(sx,sy): add_box(ax[i],xrng,yrng,images[i].shape, test=test)
+            else: add_box(ax[i],sx,sy,images[i].shape, test=test)
+    plt.savefig(name, bbox_inches='tight',dpi=150, bbox_extra_artists=[ti]) 
