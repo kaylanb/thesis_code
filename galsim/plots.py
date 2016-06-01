@@ -15,10 +15,11 @@ def image_array_from_png(fn):
     '''reading from png is fine (but NOT jpg!)'''
     return imread(fn)
 
-def image_plus_stamp(img,sx,sy,test=False):
+def image_plus_stamp(img,sx,sy,name,test=False):
     '''img -- full image
     sx -- stamp x range, list or tuple (min,max)
     sy -- ditto for y
+    name -- file name
     test -- set to True to set sx,sy to 25-75% of image to see what this func does'''
     if test: 
         sx= [int(0.25*img.shape[1]),int(0.75*img.shape[1])]
@@ -43,3 +44,16 @@ def image_plus_stamp(img,sx,sy,test=False):
         ax[i].set_xlim(0,img.shape[0])
         ax[i].set_ylim(0,img.shape[1])
     plt.savefig('test.png', bbox_inches='tight',dpi=150) # bbox_extra_artists=[xlab,ylab], 
+
+def two_images(images,name):
+    '''images= [img1,img2]
+    name -- filename'''
+    kwargs=dict(origin='lower',interpolation='nearest',cmap='gray')
+    fig,ax=plt.subplots(1,2) #,sharey=True,sharex=True)
+    plt.subplots_adjust(wspace=0.4) #,hspace=0.2)
+    for i in range(2):
+        ax[i].imshow(images[i],**kwargs)
+        ax[i].tick_params(direction='out')
+        ax[i].set_xlim(0,images[i].shape[0])
+        ax[i].set_ylim(0,images[i].shape[1])
+    plt.savefig(name, bbox_inches='tight',dpi=150) # bbox_extra_artists=[xlab,ylab], 
