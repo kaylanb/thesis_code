@@ -25,35 +25,45 @@ def image_array_from_png(fn):
     '''reading from png is fine (but NOT jpg!)'''
     return imread(fn)
 
-def add_box(ax, sx,sy,img_shape,test=False):
+def add_box(ax, xy_lim,img_shape,test=False):
     '''draw yellow box on image already drawn onto ax
     ax -- axis to draw to
-    sx -- stamp x range, list or tuple (min,max)
-    sy -- ditto for y
-    test -- set to True to set sx,sy to 25-75% of image to see what this func does'''
-    assert(img_shape[0] >= sy[1]-sy[0]) #compare sy with image[0] b/c inverted array indices
-    assert(img_shape[1] >= sx[1]-sx[0])
-    p= patches.Rectangle((sx[0],sy[0]), sx[1]-sx[0], sy[1]-sy[0],
+    xy_lim -- np.array of shape (N sims, 4), 4 is for xmin,xmax,ymin,ymax of bounding box
+    test -- set to True to set delta x,delta y to 25-75% of image to see what this func does'''
+    xmin,xmax,ymin,ymax= tuple(xy_lim)
+    assert(img_shape[0] >= ymax-ymin) #compare y with image[0] b/c inverted array indices
+    assert(img_shape[1] >= xmax-xmin)
+    p= patches.Rectangle((xmin,ymin), xmax-xmin, ymax-ymin,
                                   fc = 'none', ec = 'yellow')
     ax.add_patch(p)
 
-def image_v_stamp(images,name,sx=None,sy=None,multi_sims=False,test=False):
+def one_image(image,name='test.png'):
+    kwargs=dict(origin='lower',interpolation='nearest',cmap='gray')
+    fig,ax=plt.subplots() #,sharey=True,sharex=True)
+    ax.imshow(image,**kwargs)
+    ax.tick_params(direction='out')
+    ax.set_xlim(0,image.shape[0])
+    ax.set_ylim(0,image.shape[1])
+    plt.savefig(name, bbox_inches='tight',dpi=150) 
+
+def image_v_stamp(images,xy_lim=None,name='test.png',titles=['image+sims','image','sims'],test=False):
     '''images= [img1,img2,img3]
+    xy_lim -- np.array of shape (N sims, 4), 4 is for xmin,xmax,ymin,ymax of bounding box
     name -- filename
-    sx,sy optional x and y rng for yellow box
-    multi_sims -- if True sx,sy is a list of x and y ranges for multiple sims, if False sx,sy is a single x,y range'''
+    test -- set to True to set delta x,delta y to 25-75% of image to see what this func does'''
+    assert(len(images) == len(titles))
     kwargs=dict(origin='lower',interpolation='nearest',cmap='gray')
     ncol= len(images)
     fig,ax=plt.subplots(1,ncol) #,sharey=True,sharex=True)
     plt.subplots_adjust(wspace=0.4) #,hspace=0.2)
-    for i,title in zip(range(ncol),['image+sims','image','sims']):
+    for i,title in zip(range(ncol),titles):
         ax[i].imshow(images[i],**kwargs)
         ax[i].tick_params(direction='out')
         ax[i].set_xlim(0,images[i].shape[0])
         ax[i].set_ylim(0,images[i].shape[1])
         ti=ax[i].set_title(title)
-        if sx is not None and sy is not None: 
-            if multi_sims: 
-                for xrng,yrng in zip(sx,sy): add_box(ax[i],xrng,yrng,images[i].shape, test=test)
-            else: add_box(ax[i],sx,sy,images[i].shape, test=test)
+        if xy_lim is not None: 
+            if len(xy_lim.shape) == 2: 
+                for cnt in range(xy_lim.shape[0]): add_box(ax[i],xy_lim[cnt,:],images[i].shape, test=test)
+            else: add_box(ax[i],xy_lim,images[i].shape, test=test)
     plt.savefig(name, bbox_inches='tight',dpi=150, bbox_extra_artists=[ti]) 

@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 from scipy.spatial import KDTree
 
+from thesis_code import timing
 from astrometry.libkd.spherematch import match_radec
 
 def kdtree_match(ref_ra,ref_dec, ra,dec, k=1, dsmax=1./3600,verb=True):
@@ -85,8 +86,13 @@ ra = rand.uniform(150.,150.25,n_other)
 dec = rand.uniform(20.,20.25,n_other)
 
 i_ref,i_other,ds={},{},{}
+t1=timing.now()
 i_ref['astrom'],i_other['astrom'],ds['astrom']= match_radec(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), 5./3600)
+t2=timing.now()
 i_ref['n2'],i_other['n2'],ds['n2']= n2_match(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), dsmax=5./3600)
+t3=timing.now()
+print 'time for astrom[sec]=',timing.diff(t1,t2)
+print 'time for n2[sec]=',timing.diff(t2,t3)
 #i_ref['kd'],i_other['kd'],ds['kd']= kdtree_match(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), dsmax=5./3600)
 for key in ['astrom','n2']:
     i=np.argsort(i_ref[key])
