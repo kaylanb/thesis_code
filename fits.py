@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.io import fits
+from astropy.table import vstack, Table
 from astrometry.util.fits import fits_table
 
 def getdata(hdulist,hdu):
@@ -28,3 +29,7 @@ def overlap_bricks(bricks_fn,ra,dec,dx):
     ind= np.all((b.get('ra') >= ra1,b.get('ra') <= ra2,b.get('dec') >= dec1,b.get('dec') <= dec2),axis=0)
     print 'these bricks have centers between %.1f < ra < %.1f and %.1f < dec < %.1f' % (ra1,ra2,dec1,dec2)
     for name,ra,dec in zip(b.get('brickname')[ind],b.get('ra')[ind],b.get('dec')[ind]): print name,ra,dec
+
+def load(name):
+    '''read in fits table as astropy Table'''
+    return Table(fits.getdata(name, 1))

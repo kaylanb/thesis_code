@@ -14,6 +14,8 @@ from astropy.table import vstack, Table
 
 from astrometry.libkd.spherematch import match_radec
 
+from thesis_code.qso_ts import dr3_cats
+
 def match_two_cats(ref_cats_file,test_cats_file):
     # Set the debugging level
     lvl = logging.INFO
@@ -89,16 +91,28 @@ parser.add_argument('--star', help='star file',required=False)
 parser.add_argument('--qso', help='qso file',required=False)
 args = parser.parse_args()
 
-#qso= Table(fits.getdata(args.qso, 1))
-#star= Table(fits.getdata(args.star, 1))
+# Read in training data
 path='/global/project/projectdirs/desi/target/analysis/truth/'
 qso= Table(fits.getdata(os.path.join(path,'AllQSO.DECaLS.dr2.fits'), 1))
 star= Table(fits.getdata(os.path.join(path,'Stars_str82_355_4.DECaLS.dr2.fits'), 1))
+
+# Make list of DR3 Tractor Cat that exist for ra,dec of samples
+dr3_cats.list_them(ra1=qso['ra_1'].data.min(),\
+                    ra2=qso['ra_1'].data.max(),\
+                    dec1=qso['dec_1'].data.min(),\
+                    dec2=qso['dec_1'].data.max(),\
+                    outname='dr3_cats_qso.txt')
+dr3_cats.list_them(ra1=star['ra_1'].data.min(),\
+                    ra2=star['ra_1'].data.max(),\
+                    dec1=star['dec_1'].data.min(),\
+                    dec2=star['dec_1'].data.max(),\
+                    outname='dr3_cats_star.txt')
+
 # AB mags
 qso_mags= Mags(qso)
 star_mags= Mags(star)
 
-# output ra,dec lists
+# Output ra,dec lists
 def radec_list(tab, name):
     fout=open(name,'w')
     fout.write('# id ra dec\n')
