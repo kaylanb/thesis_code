@@ -2,6 +2,7 @@ import multiprocessing
 import resource
 import os
 import numpy as np
+from functools import partial
 
 def current_mem_usage():
 	'''return mem usage in MB'''
@@ -13,9 +14,8 @@ def bash(cmd):
 	#	print 'command failed: %s' % cmd
 	#	raise ValueError
 
-def work(fits_file):
+def work(fits_file, di=dict(),data=[]):
 	name = multiprocessing.current_process().name
-	print name
 	cmd='python schema.py -fits_file %s' % fits_file
 	ret= bash('ls %s' % fits_file)
 	#bash(cmd)
@@ -26,7 +26,9 @@ if __name__ == '__main__':
 	print "CPU has %d cores" % multiprocessing.cpu_count()
 	pool = multiprocessing.Pool(4)
 	fits_files= np.loadtxt('files.txt',dtype=str)
-	results=pool.map(work, fits_files)
+	di=dict(hello='kaylan')
+	data=np.zeros((100,10))
+	results=pool.map(partial(work, di=di,data=data),fits_files)
 	pool.close()
 	pool.join()
 	del pool
