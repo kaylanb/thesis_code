@@ -19,7 +19,7 @@ def work(fits_file, di=dict(),data=[]):
 	cmd='python schema.py -fits_file %s' % fits_file
 	ret= bash('ls %s' % fits_file)
 	#bash(cmd)
-	print '%s maximum memory usage: %.2f (mb)' % (name, current_mem_usage())
+	print '--%s-- --%d-- maximum memory usage: %.2f (mb)' % (name,int(name[-1]), current_mem_usage())
 	return ret
 	
 if __name__ == '__main__':
