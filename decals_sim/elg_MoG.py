@@ -20,15 +20,17 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from scipy.optimize import newton
 
 from astropy.io import fits
 from astropy.table import Table
 
 from thesis_code import fits as myfits
 
-def plot_elgs(zcat, figfile='test.png'):
+def plot_elgs(zcat, figfile='test.png',inbox=False):
 	sns.set(style='white', font_scale=1.4, palette='Set2')
 	col = sns.color_palette()
+	fig, ax = plt.subplots(1, 1, figsize=(8,5))
 	area = 0.4342   # [deg^2]
 	oiicut1 = 8E-17 # [erg/s/cm2]
 	zmin = 0.6
@@ -36,6 +38,38 @@ def plot_elgs(zcat, figfile='test.png'):
 	rfaint = 23.4
 	grrange = (-0.3,2.0)
 	rzrange = (-0.5,2.1)
+
+	# Target Selection box
+	def fx(x,name):
+		if name == 'y1': return 1.15*x-0.15
+		elif name == 'y2': return -1.2*x+1.6
+		else: raise ValueError
+    
+	def fx_diff(x,name):
+		if name == 'y1-y2': return fx(x,'y1')-fx(x,'y2')
+		else: raise ValueError
+	xint= newton(fx_diff,np.array([1.]),args=('y1-y2',))
+	
+	x=np.linspace(rzrange[0],rzrange[1],num=100)
+	y=np.linspace(grrange[0],grrange[1],num=100)
+	x1,y1= x,fx(x,'y1')
+	x2,y2= x,fx(x,'y2')
+	x3,y3= np.array([0.3]*len(x)),y
+	x4,y4= np.array([0.6]*len(x)),y
+	b= np.all((x >= 0.3,x <= xint),axis=0)
+	x1,y1= x1[b],y1[b]
+	b= np.all((x >= xint,x <= 1.6),axis=0)
+	x2,y2= x2[b],y2[b]
+	b= y3 <= np.min(y1)
+	x3,y3= x3[b],y3[b]
+	b= y4 <= np.min(y2)
+	x4,y4= x4[b],y4[b]
+	ax.plot(x1,y1,'k-',lw=2)
+	ax.plot(x2,y2,'k-',lw=2)
+	ax.plot(x3,y3,'k-',lw=2)
+	ax.plot(x4,y4,'k-',lw=2)
+
+	# ELG samples
 	#print("zcat['CFHTLS_R']= ",zcat['CFHTLS_R']<rfaint)
 	loz = np.all((zcat['ZBEST']<zmin,\
 				  zcat['CFHTLS_R']<rfaint),axis=0)
@@ -52,33 +86,36 @@ def plot_elgs(zcat, figfile='test.png'):
 							zcat['CFHTLS_R']<rfaint,\
 							zcat['OII_3727_ERR']!=-2.0,\
 							zcat['OII_3727']>oiicut1),axis=0)
+
 	print(len(loz), len(oiibright_loz), len(oiibright_hiz), len(oiifaint))
 
-	def getgrz(zcat, index):
-		gr = zcat['CFHTLS_G'][index] - zcat['CFHTLS_R'][index]
-		rz = zcat['CFHTLS_R'][index] - zcat['CFHTLS_Z'][index]
+	def getgrz(zcat, index,inbox=False):
+		if inbox:
+			y = zcat['CFHTLS_G'] - zcat['CFHTLS_R']
+			x = zcat['CFHTLS_R'] - zcat['CFHTLS_Z']
+			b=np.all((index,\
+					  y < fx(x,'y1'), y < fx(x,'y2'), x > 0.3, x < 1.6),axis=0) 
+			gr= y[b]
+			rz= x[b]	
+		else:
+			gr = zcat['CFHTLS_G'][index] - zcat['CFHTLS_R'][index]
+			rz = zcat['CFHTLS_R'][index] - zcat['CFHTLS_Z'][index]
 		return gr, rz
 
-	fig, ax = plt.subplots(1, 1, figsize=(8,5))
-	gr, rz = getgrz(zcat, loz)
+	gr, rz = getgrz(zcat, loz,inbox=inbox)
 	ax.scatter(rz, gr, marker='^', color=col[2], label=r'$z<0.6$')
 
-	gr, rz = getgrz(zcat, oiifaint)
+	gr, rz = getgrz(zcat, oiifaint,inbox=inbox)
 	ax.scatter(rz, gr, marker='s', color='tan', 
 			   label=r'$z>0.6, [OII]<8\times10^{-17}$')
 
-	gr, rz = getgrz(zcat, oiibright_loz)
+	gr, rz = getgrz(zcat, oiibright_loz,inbox=inbox)
 	ax.scatter(rz, gr, marker='o', color='powderblue', 
 			   label=r'$z>0.6, [OII]>8\times10^{-17}$')
 
-	gr, rz = getgrz(zcat, oiibright_hiz)
+	gr, rz = getgrz(zcat, oiibright_hiz,inbox=inbox)
 	ax.scatter(rz, gr, marker='o', color='powderblue', edgecolor='black', 
 			   label=r'$z>1.0, [OII]>8\times10^{-17}$')
-
-	#gr, rz = getgrz(stars, np.where((stars['FIELD']==1)*1)[0])
-	#sns.kdeplot(rz, gr, cmap='Greys_r', clip=(rzrange, grrange),
-	#            levels=(1-0.75, 1-0.5, 1-0.25, 1-0.1))
-	#            #levels=(0.5, 0.6, 0.75, 0.9, 0.99))
 	
 	ax.set_xlabel(r'$(r - z)$')
 	ax.set_ylabel(r'$(g - r)$')
@@ -129,8 +166,10 @@ def main():
 
 	# --------------------------------------------------
 	# g-r vs r-z coded by [OII] strength
-	name = os.path.join(outdir, 'mine_deep2-elg-grz-oii.png')
-	plot_elgs(zcat, figfile=name)
+	name = os.path.join(outdir, 'elgs.png')
+	plot_elgs(zcat, figfile=name,inbox=False)
+	name = os.path.join(outdir, 'elgs_inbox.png')
+	plot_elgs(zcat, figfile=name,inbox=True)
 
 if __name__ == "__main__":
     main()
