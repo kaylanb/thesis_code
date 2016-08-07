@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 from scipy.spatial import KDTree
 
-from thesis_code import timing
 
 def kdtree(ref_ra,ref_dec, ra,dec, k=1, dsmax=1./3600,verb=True):
     '''computes distance (deg separation)= sqrt{(dec1-dec2)^2+ cos[0.5*(dec1+dec2)]^2*(ra1-ra2)^2}
@@ -76,32 +75,33 @@ def n2(ref_ra,ref_dec, ra,dec, dsmax=1./3600,verb=True):
 
 
 def main():
-    from astrometry.libkd.spherematch import match_radec
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description='DECaLS simulations.')
-    args = parser.parse_args()
+	from thesis_code import timing
+	from astrometry.libkd.spherematch import match_radec
+	parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+									 description='DECaLS simulations.')
+	args = parser.parse_args()
 
-    rand = np.random.RandomState(10)
-    n_ref,n_other=10000,5000
-    ra_ref = rand.uniform(150.,150.25,n_ref)
-    dec_ref = rand.uniform(20.,20.25,n_ref)
-    ra = rand.uniform(150.,150.25,n_other)
-    dec = rand.uniform(20.,20.25,n_other)
+	rand = np.random.RandomState(10)
+	n_ref,n_other=10000,5000
+	ra_ref = rand.uniform(150.,150.25,n_ref)
+	dec_ref = rand.uniform(20.,20.25,n_ref)
+	ra = rand.uniform(150.,150.25,n_other)
+	dec = rand.uniform(20.,20.25,n_other)
 
-    i_ref,i_other,ds={},{},{}
-    t1=timing.now()
-    i_ref['astrom'],i_other['astrom'],ds['astrom']= match_radec(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), 1./3600)
-    t2=timing.now()
-    #i_ref['n2'],i_other['n2'],ds['n2']= n2_match(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), dsmax=5./3600)
-    i_ref['kd'],i_other['kd'],ds['kd']= kdtree(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), dsmax=1./3600)
-    t3=timing.now()
-    print 'time for astrom[sec]=',timing.diff(t1,t2)
-    print 'time for kd[sec]=',timing.diff(t2,t3)
-    for key in ['astrom','kd']:
-        print('%s: matched %d/%d' % (key,len(i_ref[key]),len(ra_ref)))
-        i=np.argsort(i_ref[key])
-        i_ref[key]= i_ref[key][i]
-        i_other[key]= i_other[key][i]
+	i_ref,i_other,ds={},{},{}
+	t1=timing.now()
+	i_ref['astrom'],i_other['astrom'],ds['astrom']= match_radec(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), 1./3600)
+	t2=timing.now()
+	#i_ref['n2'],i_other['n2'],ds['n2']= n2_match(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), dsmax=5./3600)
+	i_ref['kd'],i_other['kd'],ds['kd']= kdtree(ra_ref.copy(),dec_ref.copy(), ra.copy(),dec.copy(), dsmax=1./3600)
+	t3=timing.now()
+	print 'time for astrom[sec]=',timing.diff(t1,t2)
+	print 'time for kd[sec]=',timing.diff(t2,t3)
+	for key in ['astrom','kd']:
+		print('%s: matched %d/%d' % (key,len(i_ref[key]),len(ra_ref)))
+		i=np.argsort(i_ref[key])
+		i_ref[key]= i_ref[key][i]
+		i_other[key]= i_other[key][i]
 
 if __name__ == "__main__":
     main()
