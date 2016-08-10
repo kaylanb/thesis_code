@@ -27,18 +27,16 @@ from astropy.table import Table
 
 from thesis_code import fits as myfits
 
-def plot_elgs(zcat, figfile='test.png',inbox=False):
-	sns.set(style='white', font_scale=1.4, palette='Set2')
+def elg_panel(ax, zcat, inbox=False):
 	col = sns.color_palette()
-	fig, ax = plt.subplots(1, 1, figsize=(8,5))
 	area = 0.4342   # [deg^2]
 	oiicut1 = 8E-17 # [erg/s/cm2]
 	zmin = 0.6
 	zmax = 1.6
 	rfaint = 23.4
-	grrange = (-0.3,2.0)
-	rzrange = (-0.5,2.1)
-
+	grrange = (-0.2, 2.0)
+	rzrange = (-0.4, 2.5)
+	
 	# Target Selection box
 	def fx(x,name):
 		if name == 'y1': return 1.15*x-0.15
@@ -117,16 +115,64 @@ def plot_elgs(zcat, figfile='test.png',inbox=False):
 	ax.scatter(rz, gr, marker='o', color='powderblue', edgecolor='black', 
 			   label=r'$z>1.0, [OII]>8\times10^{-17}$')
 	
-	ax.set_xlabel(r'$(r - z)$')
-	ax.set_ylabel(r'$(g - r)$')
 	ax.set_xlim(rzrange)
 	ax.set_ylim(grrange)
-	plt.legend(loc='upper left', prop={'size': 14}, labelspacing=0.2,
-			   markerscale=1.5)
-	#fig.subplots_adjust(left=0.3, bottom=0.3, wspace=0.1)
-	print('Writing {}'.format(figfile))
-	plt.savefig(figfile, bbox_inches='tight')
+	ax.legend(loc='upper left', prop={'size': 14}, labelspacing=0.2,
+			  markerscale=1.5)
     
+def plot_color(zcat, figfile='test.png'):
+	#sns.set(style='white', font_scale=1.4, palette='Set2')
+	sns.set(style='white', font_scale=1.6, palette='deep')
+	fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.5, 5), sharey=True)
+	# add panels
+	elg_panel(ax1, zcat, inbox=False)
+	elg_panel(ax2, zcat, inbox=True)
+	# label
+	xlab=ax1.set_xlabel('r - z')
+	ylab=ax1.set_ylabel('g - r')
+	#ax1.legend(loc='upper left', prop={'size': 14}, labelspacing=0.25, markerscale=2)
+	ax2.yaxis.tick_right()
+	ylab_r=ax2.yaxis.set_label_position("right")
+	xlab=ax2.set_xlabel('r - z')
+	ylab=ax2.set_ylabel('g - r')
+	print('Writing {}'.format(figfile))
+	kwargs= dict(bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+	plt.savefig(figfile, **kwargs)
+	plt.close()
+
+def plot_size(zcat, hi=True, name='test.png'):
+	if hi:  
+		sersicn= zcat['N_GALFIT_HI']
+		r50= 0.3*zcat['RE_GALFIT_HI'] #arcsec b/c 0.03 arcsec/px
+		name= name.replace('.png','_hi.png')
+	else: 
+		sersicn= zcat['N_GALFIT_LOW']
+		r50= 0.3*zcat['RE_GALFIT_LOW'] #arcsec b/c 0.03 arcsec/px
+		name= name.replace('.png','_low.png')
+	jp = sns.jointplot(r50, sersicn, kind='scatter', stat_func=None, 
+					   xlim=(0, 1.5), ylim=(0, 4))
+	jp.set_axis_labels('Half-light radius (arcsec)', 'Sersic n')	
+	print('Writing {}'.format(name))
+	#kwargs= dict(bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+	plt.savefig(name) #**kwargs)
+	plt.close()
+
+def plot_shear(zcat, hi=True, name='test.png'):
+	if hi:
+		ba= zcat['BA_GALFIT_HI'] #minor/major
+		pa= zcat['PA_GALFIT_HI'] #degree
+		name= name.replace('.png','_hi.png')
+	else:
+		ba= zcat['BA_GALFIT_LOW'] #minor/major
+		pa= zcat['PA_GALFIT_LOW'] #degree
+		name= name.replace('.png','_low.png')
+	jp = sns.jointplot(ba, pa, kind='scatter', stat_func=None) #xlim=(0, 1.5), ylim=(0, 4))
+	jp.set_axis_labels('Minor/Major axis', 'Position Angle (deg)')
+	print('Writing {}'.format(name))
+	#kwargs= dict(bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+	plt.savefig(name) #**kwargs)
+	plt.close()
+
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -164,12 +210,17 @@ def main():
 	#zcat = fits.getdata(os.path.join(targdir, 'deep2egs-oii.fits.gz'), 1)
 	#stars = fits.getdata(os.path.join(targdir, 'deep2egs-stars.fits.gz'), 1)
 
-	# --------------------------------------------------
-	# g-r vs r-z coded by [OII] strength
-	name = os.path.join(outdir, 'elgs.png')
-	plot_elgs(zcat, figfile=name,inbox=False)
-	name = os.path.join(outdir, 'elgs_inbox.png')
-	plot_elgs(zcat, figfile=name,inbox=True)
+	# Color
+	plot_color(zcat, figfile=os.path.join(outdir, 'elgs_color.png'))
+	# Morphology
+	b= zcat['FLAG_GALFIT_HI'] == 0 #quality
+	plot_size(zcat[b], hi=True, name=os.path.join(outdir, 'elgs_size.png'))
+	plot_shear(zcat[b], hi=True, name=os.path.join(outdir, 'elgs_shear.png'))
+	plot_size(zcat[b], hi=False, name=os.path.join(outdir, 'elgs_size.png'))
+	plot_shear(zcat[b], hi=False, name=os.path.join(outdir, 'elgs_shear.png'))
+	return zcat
 
-if __name__ == "__main__":
-    main()
+zcat= main()
+
+#if __name__ == "__main__":
+#    main()
