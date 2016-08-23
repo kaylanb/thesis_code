@@ -27,31 +27,29 @@ from astropy.table import Table
 
 from thesis_code import fits as myfits
 
-def elg_panel(ax, zcat, inbox=False):
-	col = sns.color_palette()
-	area = 0.4342   # [deg^2]
-	oiicut1 = 8E-17 # [erg/s/cm2]
-	zmin = 0.6
-	zmax = 1.6
-	rfaint = 23.4
-	grrange = (-0.2, 2.0)
-	rzrange = (-0.4, 2.5)
-	
-	# Target Selection box
-	def fx(x,name):
+def ts_curves(x,name,src='ELG'):
+	if src == 'ELG':
 		if name == 'y1': return 1.15*x-0.15
 		elif name == 'y2': return -1.2*x+1.6
 		else: raise ValueError
-    
-	def fx_diff(x,name):
-		if name == 'y1-y2': return fx(x,'y1')-fx(x,'y2')
+	else: raise ValueError('non ELG not supported')
+
+def ts_root(x,name, src='ELG'):
+	if src == 'ELG':
+		if name == 'y1-y2': return ts_curves(x,'y1')-ts_curves(x,'y2')
 		else: raise ValueError
-	xint= newton(fx_diff,np.array([1.]),args=('y1-y2',))
+	else: raise ValueError('non ELG not supported')
+
+def add_elg_ts_box(ax):
+	'''draw g-r vs. r-z target selection box, ELGs'''
+	xint= newton(ts_root,np.array([1.]),args=('y1-y2',))
 	
+	grrange = (-0.2, 2.0)
+	rzrange = (-0.4, 2.5)
 	x=np.linspace(rzrange[0],rzrange[1],num=100)
 	y=np.linspace(grrange[0],grrange[1],num=100)
-	x1,y1= x,fx(x,'y1')
-	x2,y2= x,fx(x,'y2')
+	x1,y1= x,ts_curves(x,'y1')
+	x2,y2= x,ts_curves(x,'y2')
 	x3,y3= np.array([0.3]*len(x)),y
 	x4,y4= np.array([0.6]*len(x)),y
 	b= np.all((x >= 0.3,x <= xint),axis=0)
@@ -67,6 +65,17 @@ def elg_panel(ax, zcat, inbox=False):
 	ax.plot(x3,y3,'k-',lw=2)
 	ax.plot(x4,y4,'k-',lw=2)
 
+def elg_panel(ax, zcat, inbox=False):
+	add_elg_ts_box(ax)
+	# add Data
+	col = sns.color_palette()
+	oiicut1 = 8E-17 # [erg/s/cm2]
+	zmin = 0.6
+	zmax = 1.6
+	rfaint = 23.4
+	grrange = (-0.2, 2.0)
+	rzrange = (-0.4, 2.5)
+		
 	# ELG samples
 	#print("zcat['CFHTLS_R']= ",zcat['CFHTLS_R']<rfaint)
 	loz = np.all((zcat['ZBEST']<zmin,\
@@ -92,7 +101,7 @@ def elg_panel(ax, zcat, inbox=False):
 			y = zcat['CFHTLS_G'] - zcat['CFHTLS_R']
 			x = zcat['CFHTLS_R'] - zcat['CFHTLS_Z']
 			b=np.all((index,\
-					  y < fx(x,'y1'), y < fx(x,'y2'), x > 0.3, x < 1.6),axis=0) 
+					  y < ts_curves(x,'y1'), y < ts_curves(x,'y2'), x > 0.3, x < 1.6),axis=0) 
 			gr= y[b]
 			rz= x[b]	
 		else:
