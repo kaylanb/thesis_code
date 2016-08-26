@@ -18,6 +18,8 @@ def parse_mem(lines,nstages):
         if 'Resources for stage' in line: d['stage']+= [line.split()[3]]
         elif 'Wall:' in line: 
             line= line.split(',')
+			# Avoid extra worker thread columns if exists
+            line= line[:len(d.keys())-1]
             for li in line:
                 li=li.split()
                 key=li[0][:-1]
@@ -69,10 +71,11 @@ def add_scatter(ax,x,y,c='b',m='o',lab='hello',s=80,drawln=False):
 	ax.scatter(x,y, s=s, lw=2.,facecolors='none',edgecolors=c, marker=m,label=lab)
 	if drawln: ax.plot(x,y, c=c,ls='-')
 
-def tractor_profile_plots(mem,tm):
-	name='time_v_stage.png'
+def tractor_profile_plots(mem,tm,nthreads=1):
+	name='time_v_stage_threads%d.png' % nthreads
 	fig,ax=plt.subplots()
 	xvals= np.arange(tm['stage'].size)+1
+	print tm['parallel']
 	add_scatter(ax,xvals, tm['serial']/60., c='b',m='o',lab='serial',drawln=True)
 	add_scatter(ax,xvals, tm['parallel']/60., c='g',m='o',lab='parallel',drawln=True)
 	plt.legend(loc='lower right',scatterpoints=1)
@@ -80,6 +83,7 @@ def tractor_profile_plots(mem,tm):
 	ax.set_xticks(xvals)
 	ax.set_xticklabels(tm['stage'],rotation=45, ha='right')
 	ax.set_yscale('log')
+	ax.set_ylim([1e-3,1e2])
 	xlab=ax.set_ylabel('Wall Time (min)')
 	ylab=ax.set_xlabel('Tractor Stage')
 	plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
@@ -91,12 +95,16 @@ if __name__ == '__main__':
 	# Tractor stdout file, parse profiling info
 	parser = ArgumentParser(description="test")
 	parser.add_argument("--tractor_stdout",action="store",required=True)
+	parser.add_argument("--nthreads",type=int,action="store",required=True)
 	args = parser.parse_args()
 	# parse stdout and read data into numpy arrays
 	fmem= os.path.join(os.path.dirname(args.tractor_stdout),\
 					   os.path.basename(args.tractor_stdout)+'_mem.txt')
 	ftime= os.path.join(os.path.dirname(args.tractor_stdout),\
 					    os.path.basename(args.tractor_stdout)+'_time.txt')
+	# multi node
+	# grep "runbrick.py starting at" bb_multi.o2907746
+	# grep "Stage writecat finished:" bb_multi.o2907746
 	for fn in [fmem,ftime]:
 		if os.path.exists(fn):
 			print 'using existing file: %s' % fn
@@ -106,7 +114,7 @@ if __name__ == '__main__':
 	mem=parse_tractor_profile(fmem)
 	tm=parse_tractor_profile(ftime)
 	# plots
-	tractor_profile_plots(mem,tm)
+	tractor_profile_plots(mem,tm,nthreads=args.nthreads)
 
 
 	# strong scaling data
@@ -122,8 +130,9 @@ if __name__ == '__main__':
 		assert(np.all(np.isfinite(data[key])))
 
 	fig,ax=plt.subplots()
-	for key,col,mark,lab in zip(['lstr','bb'],['k','b'],['o']*2,['Luster','BB']):
+	for key,col,mark,lab in zip(['lstr','bb'],['g','b'],['o']*2,['Lustre','BB']):
 		add_scatter(ax,data['threads'], data[key]/60., c=col,m=mark,lab=lab)
+	ax.legend(loc='upper right',scatterpoints=1)
 	ax.set_xticks(data['threads'])
 	xlab=ax.set_xlabel('Threads')
 	ylab=ax.set_ylabel('Wall Time (min)')
