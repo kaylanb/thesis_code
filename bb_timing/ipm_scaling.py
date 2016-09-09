@@ -32,10 +32,10 @@ def parse_stdout(stdout, appendfn):
 	#		((inGb+outGb)/t_io_kernel,(inGb+outGb)/t_io_wrapper)
 	#print "wallclock=%.2f [sec], percent time i/o=%.2f" % (wall,percent_io)
 	fout=open(appendfn,'a')
-	fout.write("#ncores wallt[s] percI/O totalGB Bandwidth_kernel[GB/s] Bandwidth_wrapper[GB/s]\n")
-	fout.write("%d %.2f %.2f %.2f %.2f %.2f\n" % \
+	fout.write("#ncores wallt[s] percI/O totalGB Bandwidth_kernel[GB/s] Bandwidth_wrapper[GB/s] stdout\n")
+	fout.write("%d %.2f %.2f %.2f %.2f %.2f %s\n" % \
 				(ncores,wall,percent_io,inGb+outGb,\
-				(inGb+outGb)/t_io_kernel,(inGb+outGb)/t_io_wrapper))
+				(inGb+outGb)/t_io_kernel,(inGb+outGb)/t_io_wrapper, stdout))
 	fout.close()
 
 def python_read(fn):
