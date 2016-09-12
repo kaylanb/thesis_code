@@ -38,6 +38,38 @@ def parse_stdout(stdout, appendfn):
 				(inGb+outGb)/t_io_kernel,(inGb+outGb)/t_io_wrapper, stdout))
 	fout.close()
 
+def parse_multi_node(stdout, appendfn):
+	nodes= int(bash_result("grep 'Command-line args:' %s |wc -l" % stdout) )
+	ncores= str(bash_result("grep 'Command-line args:' %s|cut -d ',' -f 11|tail -n 1" % stdout) )
+	ncores= int( ncores.replace('"','').replace("'",'') )
+	wall_overnodes= float( bash_result("grep '# stop' %s|tail -n 1|cut -d ' ' -f 18" % stdout) )
+	if nodes == 2:
+		tot_inGb= str( bash_result("grep 'proc' %s| grep 'syscall input'|tail -n 4|head -n 1|cut -d ' ' -f 5,10" % stdout) )
+		tot_inGb,tot_outGb= float(tot_inGb.split()[0])/1024.,float(tot_inGb.split()[-1])/1024.
+		t_io_kernel= float( bash_result("grep proc %s|grep 'block I/O delays' | cut -d ' ' -f 6|tail -n 2|head -n 1" % stdout) )
+		t_io_wrapper= str( bash_result("grep '# I/O' %s | tail -n 1" % stdout) )
+		t_io_wrapper= float(t_io_wrapper.split()[-1])
+		tot_percent_io= str( bash_result("grep '# I/O' %s -A 2|tail -n 1" % stdout) )
+		tot_percent_io= float(tot_percent_io.split()[-1])
+	elif nodes == 8:
+		tot_inGb= str( bash_result("grep 'proc' %s| grep 'syscall input'|grep 'MiB'|tail -n 1|cut -d ' ' -f 5,10" % stdout) )
+		tot_inGb,tot_outGb= float(tot_inGb.split()[0])/1024.,float(tot_inGb.split()[-1])/1024.
+		t_io_kernel= float( bash_result("grep proc %s|grep 'block I/O delays' |tail -n 1|cut -d ' ' -f 6" % stdout) )
+		t_io_wrapper= str( bash_result("grep '# I/O' %s |tail -n 2|head -n 1" % stdout) )
+		t_io_wrapper= float(t_io_wrapper.split()[-1])
+		tot_percent_io= str( bash_result("grep '%%wall' %s -A 1|grep 'I/O'|tail -n 1" % stdout) )
+		tot_percent_io= float(tot_percent_io.split()[-1])
+	elif nodes == 64:
+		pass
+	else: raise ValueError('%d nodes not supported' % nodes)
+	print nodes,ncores,wall_overnodes,tot_percent_io,tot_inGb,tot_outGb,t_io_kernel,t_io_wrapper,stdout
+	fout=open(appendfn,'a')
+	fout.write("#nnodes ncores wallt[s] percI/O totalGB Bandwidth_kernel[GB/s] Bandwidth_wrapper[GB/s] stdout\n")
+	fout.write("%d %d %.2f %.2f %.2f %.2f %.2f %s\n" % \
+				(nodes,ncores,wall_overnodes,tot_percent_io,tot_inGb+tot_outGb,\
+				(tot_inGb+tot_outGb)/t_io_kernel,(tot_inGb+tot_outGb)/t_io_wrapper, stdout))
+	fout.close()
+
 def python_read(fn):
 	fobj=open(stdout,'r')
 	lines=fobj.readlines()
@@ -76,6 +108,6 @@ if __name__ == '__main__':
 	parser.add_argument("--appendfn",action="store",default='ipm_analysis.txt',required=False)
 	args = parser.parse_args()
 	# bandwidth
-	parse_stdout(args.stdout, args.appendfn)
-	
+	#parse_stdout(args.stdout, args.appendfn)
+	parse_multi_node(args.stdout, args.appendfn)
 	print "done"
