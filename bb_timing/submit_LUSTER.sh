@@ -33,19 +33,20 @@ module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
 ##module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
 set -x
 
-EXE=python ../legacypipe/runbrick.py \
-    --zoom 1 1600 1 1600 \
-    --force-all --no-write \
-    --pipe \
-    --threads ${ncores} \
-    --skip \
-    --skip-calibs \
-    --brick $brick --outdir ${tracdir} --nsigma 6
+##python ../legacypipe/runbrick.py --zoom 1 200 1 200 --force-all --no-write --pipe --threads 1  --skip --skip-calibs  --brick 2523p355 --outdir . --nsigma 6
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-	mkdir lstr_${process}
-	cd lstr_${process}
+    EXE=python legacypipe/runbrick.py \
+            --zoom 1 1600 1 1600 \
+            --force-all --no-write \
+            --pipe \
+            --threads ${ncores} \
+            --skip \
+            --skip-calibs \
+            --brick $brick --outdir tractor${process} --nsigma 6
+	#mkdir lstr_${process}
+	#cd lstr_${process}
     srun \
 	-N 1 \
 	-n 1 \
@@ -53,7 +54,7 @@ for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
 	-o "output.runbrick.%j.${process}" \
 	-e "error.runbrick.%j.${process}" \
 	$LAUNCH $EXE &
-    cd ..
+    #cd ..
 done
 sleep 10
 touch $CONTROL_FILE
