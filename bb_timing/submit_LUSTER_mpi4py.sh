@@ -2,16 +2,18 @@
 
 #SBATCH -p debug
 #SBATCH -N 2
-#SBATCH -t 00:15:00
-#SBATCH -J lstr_ipm
+#SBATCH -t 00:05:00
+#SBATCH -J lstr_mpi
 #SBATCH -o output.%j
 #SBATCH -e error.%j
 #SBATCH -d singleton
 #SBATCH --mail-user=kburleigh@lbl.gov
 #SBATCH --mail-type=END,FAIL
 
+module load mpi4py-hpcp
+
 set -x
-LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch.sh"
+LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch_mpi4py.sh"
 export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
 ncores=32
@@ -26,26 +28,12 @@ export DUST_DIR=${LEGACY_SURVEY_DIR}/dust/v0_0
 
 brick=2523p355
 
-set +x
-module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
-module unload darshan
-module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
-##module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
-set -x
-
 ##python ../legacypipe/runbrick.py --zoom 1 200 1 200 --force-all --no-write --pipe --threads 1  --skip --skip-calibs  --brick 2523p355 --outdir . --nsigma 6
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    mkdir process${process} && cd process${process} && ln -s ../legacypipe legacypipe
-    EXE="python legacypipe/runbrick.py \
-            --zoom 1 1600 1 1600 \
-            --force-all --no-write \
-            --pipe \
-            --threads ${ncores} \
-            --skip \
-            --skip-calibs \
-            --brick $brick --outdir . --nsigma 6"
+    mkdir mpi_process${process} && cd mpi_process${process} && ln -s ../legacypipe legacypipe
+    EXE="python ../mpi4py_wrapper.py"
     srun \
 	-N 1 \
 	-n 1 \
