@@ -2,25 +2,24 @@
 
 #SBATCH -p debug
 #SBATCH -N 2
-#SBATCH -t 00:05:00
-#SBATCH -J bb_multi
+#SBATCH -t 00:10:00
+#SBATCH -J bb_ipm
 #SBATCH -o output.%j
 #SBATCH -e error.%j
 #SBATCH -d singleton
 #SBATCH --mail-user=kburleigh@lbl.gov
 #SBATCH --mail-type=END,FAIL
 #DW persistentdw name=tractorSmall
-#DW stage_out source=$DW_PERSISTENT_STRIPED_tractorSmall/bb_multi destination=/global/cscratch1/sd/kaylanb/BB/bb_multi type=directory
+#DW stage_out source=$DW_PERSISTENT_STRIPED_tractorSmall/timing destination=/global/cscratch1/sd/kaylanb/desi/legacypipe/py/burst_buffer type=directory
 
 set -x
-LAUNCH="./sync_launch.sh"
-export CONTROL_FILE="$SCRATCH/control_file_${SLURM_JOBID}.txt"
-
-export outdir=$DW_PERSISTENT_STRIPED_tractorSmall/bb_multi
-mkdir ${outdir}
+LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch.sh"
+export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
 ncores=32
 
+export root_dir=$DW_PERSISTENT_STRIPED_tractorSmall/timing
+rm -r ${root_dir} && mkdir ${root_dir}
 export LEGACY_SURVEY_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3
 export DUST_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3/dust/v0_0
 
@@ -28,15 +27,6 @@ export DUST_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3/dust/v0_0
 #module load dws
 #echo dwstat --all
 #dwstat --all
-
-echo reservation dir=$DW_PERSISTENT_STRIPED_tractorSmall
-echo outdir=${outdir}
-echo LEGACY_SURVEY_DIR=${LEGACY_SURVEY_DIR}
-echo DUST_DIR=${DUST_DIR}
-echo ls $DW_PERSISTENT_STRIPED_tractorSmall
-ls $DW_PERSISTENT_STRIPED_tractorSmall
-echo ls ${outdir}
-ls ${outdir}
 
 brick=2523p355
 
@@ -47,19 +37,20 @@ module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
 ##module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
 set -x
 
-EXE=python ../legacypipe/runbrick.py \
-    --zoom 1 1600 1 1600 \
-    --force-all --no-write \
-    --pipe \
-    --threads ${ncores} \
-    --skip \
-    --skip-calibs \
-    --brick $brick --outdir ${tracdir} --nsigma 6
+##python ../legacypipe/runbrick.py --zoom 1 200 1 200 --force-all --no-write --pipe --threads 1  --skip --skip-calibs  --brick 2523p355 --outdir . --nsigma 6
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-	mkdir bb_${process}
-	cd bb_${process}
+    export outdir=${root_dir}/process${process}
+    mkdir -p ${outdir} && cd ${outdir} && ln -s ${SLURM_SUBMIT_DIR}/legacypipe legacypipe
+    EXE="python legacypipe/runbrick.py \
+            --zoom 1 1600 1 1600 \
+            --force-all --no-write \
+            --pipe \
+            --threads ${ncores} \
+            --skip \
+            --skip-calibs \
+            --brick $brick --outdir . --nsigma 6"
     srun \
 	-N 1 \
 	-n 1 \
@@ -67,7 +58,7 @@ for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
 	-o "output.runbrick.%j.${process}" \
 	-e "error.runbrick.%j.${process}" \
 	$LAUNCH $EXE &
-    cd ..
+    cd ${SLURM_SUBMIT_DIR}
 done
 sleep 10
 touch $CONTROL_FILE
