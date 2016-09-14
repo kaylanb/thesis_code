@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 #SBATCH -p debug
-#SBATCH -N 2
-#SBATCH -t 00:05:00
+#SBATCH -N 1
+#SBATCH -t 00:10:00
 #SBATCH -J lstr_mpi
 #SBATCH -o output.%j
 #SBATCH -e error.%j
@@ -16,10 +16,11 @@ set -x
 LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch_mpi4py.sh"
 export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
-ncores=32
+ncores=1
 
 export LEGACY_SURVEY_DIR=/global/cscratch1/sd/kaylanb/dr3_testdir_for_bb
 export DUST_DIR=${LEGACY_SURVEY_DIR}/dust/v0_0
+name=mpi
 
 ## Equally distributed across nodes
 #module load dws
@@ -32,7 +33,7 @@ brick=2523p355
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    mkdir mpi_process${process} && cd mpi_process${process} && ln -s ../legacypipe legacypipe
+    mkdir ${name}${process} && cd ${name}${process} && ln -s ../legacypipe legacypipe
     EXE="python ../mpi4py_wrapper.py"
     srun \
 	-N 1 \

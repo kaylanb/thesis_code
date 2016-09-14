@@ -14,4 +14,7 @@ tdiff=$(echo "$t2 - $t1" | bc -l)
 echo "TIME LAUNCH $tdiff"
 echo "STAMP LAUNCH END $(date --rfc-3339=ns)"
 
+## IPM
 env LD_PRELOAD=$IPM_PATH/lib/libipm.so "$@"
+## STRACE
+#env $STRACE_LOG "$@"
