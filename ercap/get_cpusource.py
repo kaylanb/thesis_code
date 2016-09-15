@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from astropy.io import fits
 from astropy.table import vstack, Table, Column
 from argparse import ArgumentParser
@@ -81,16 +84,81 @@ def gather_results(args=None):
     fobj.close()    
     print 'saved results to %s' % args.savefn
 
+def add_scatter(ax,x,y,c='b',m='o',lab='hello',s=80,drawln=False):
+    ax.scatter(x,y, s=s, lw=2.,facecolors='none',edgecolors=c, marker=m,label=lab)
+    if drawln: ax.plot(x,y, c=c,ls='-')
+
+def plot_medt_grz(cpu,append=''):
+    name='medt_grz_%s.png' % append 
+    fig,ax=plt.subplots()
+    add_scatter(ax,np.arange(cpu.size), cpu/3600., c='b',m='o',lab='',drawln=True)
+    plt.legend(loc='lower right',scatterpoints=1)
+    #ax.set_yscale('log')
+    #ax.set_ylim([1e-3,1e2])
+    xlab=ax.set_ylabel('Median of Brick-summed "cpu_source" [hours]')
+    ylab=ax.set_xlabel('nexp g+r+z (g,r,z <= 5)')
+    plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+    plt.close() 
+ 
+def plot_medt_grz_errbars(cpu):
+    name='medt_grz_errbars.png'
+    yerr=np.vstack((cpu['med']-cpu['min'],cpu['max']-cpu['med']))/3600. 
+    plt.errorbar(range(cpu['med'].size), cpu['med']/3600.,yerr=yerr,\
+                 marker='o',fmt='o',c='b')
+    # nexp= 3,6,9 are special
+    i=[3,6,9]
+    yerr=yerr[:,i] 
+    plt.errorbar(np.arange(cpu['med'].size)[i], cpu['med'][i]/3600.,yerr=yerr,\
+                 marker='o',fmt='o',c='r')
+    for i in [3,6,9]:
+        plt.text(i,cpu['med'][i]/3600.,'%.2f' % (cpu['med'][i]/3600.,),ha='left',va='center')
+        plt.text(i,cpu['max'][i]/3600.,'%.2f' % (cpu['max'][i]/3600.,),ha='left',va='center')
+        plt.text(i,cpu['min'][i]/3600.,'%.2f' % (cpu['min'][i]/3600.,),ha='left',va='center')
+    #plt.legend(loc='lower right',scatterpoints=1)
+    #ax.set_yscale('log')
+    #ax.set_ylim([1e-3,1e2])
+    xlab=plt.ylabel('Median of Brick-summed "cpu_source" [hours]')
+    ylab=plt.xlabel('nexp g+r+z (g,r,z <= 5)')
+    plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+    plt.close() 
+ 
 def analyze_results(args=None):
     parser = ArgumentParser(description="test")
     parser.add_argument("--savefn",action="store",default='results.pickle',required=False)
     args = parser.parse_args(args=args)
 
     fobj=open(args.savefn,'r')
-    f,b,t=pickle.load(fobj)
+    cats,bricks,times=pickle.load(fobj)
     fobj.close()
 
-    print t.sum()/3600
+    fn='/project/projectdirs/cosmo/work/legacysurvey/dr3/survey-bricks-dr3.fits.gz'
+    info=Table(fits.getdata(fn, 1))
+    # sort both sets of data by brickname so they are rank aligned
+    i=np.argsort(bricks)
+    bricks,times=bricks[i],times[i]
+    i=np.argsort(info['brickname'])
+    info=info[i]
+    assert( np.all(info['brickname'] == bricks) )
+    # indices
+    b={}
+    for band in ['g','r','z']:
+        b['%s5' % band]=info['nexp_%s' % band] <= 5
+    grz= info['nexp_g']+info['nexp_r']+info['nexp_z']
+    for i in range(16):
+        b['grz%d' % i]= grz == i
+    # data
+    cpu={}
+    for nam in ['min','max','med']: cpu[nam]= np.zeros(16)-1
+    for i in range(16):
+        cut= b['g5']*b['r5']*b['z5']*b['grz%d' % i]
+        cpu['med'][i]= np.median( times[cut] )
+        cpu['min'][i]= np.min( times[cut] )
+        cpu['max'][i]= np.max( times[cut] )
+    # plot
+    for nam in ['min','max','med']: plot_medt_grz(cpu[nam],append=nam)
+    plot_medt_grz_errbars(cpu)
+ 
+    print times.sum()/3600
 
 def main(args=None,program='analyze'):
     if program == 'analyze':
