@@ -18,8 +18,6 @@ export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
 ncores=32
 
-export root_dir=$DW_PERSISTENT_STRIPED_tractorSmall/timing
-rm -r ${root_dir} && mkdir ${root_dir}
 export LEGACY_SURVEY_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3
 export DUST_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3/dust/v0_0
 
@@ -31,11 +29,24 @@ export DUST_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3/dust/v0_0
 brick=2523p355
 
 set +x
+name=iota
 module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
 module unload darshan
-module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
-##module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
+module load iota-ts/fd19dc9
+## IPM
+#name=ipm
+#module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
+#module unload darshan
+#module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
+#module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
+## STRACE
+#name=strace
+#module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
+#module load strace/4.12
 set -x
+
+export root_dir=$DW_PERSISTENT_STRIPED_tractorSmall/${name}
+rm -rf ${root_dir} && mkdir -p ${root_dir}
 
 ##python ../legacypipe/runbrick.py --zoom 1 200 1 200 --force-all --no-write --pipe --threads 1  --skip --skip-calibs  --brick 2523p355 --outdir . --nsigma 6
 
@@ -44,7 +55,8 @@ for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     export outdir=${root_dir}/process${process}
     mkdir -p ${outdir} && cd ${outdir} && ln -s ${SLURM_SUBMIT_DIR}/legacypipe legacypipe
     EXE="python legacypipe/runbrick.py \
-            --zoom 1 1600 1 1600 \
+            --stage tims \
+            --zoom 1 200 1 200 \
             --force-all --no-write \
             --pipe \
             --threads ${ncores} \

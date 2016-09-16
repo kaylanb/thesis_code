@@ -14,7 +14,9 @@ tdiff=$(echo "$t2 - $t1" | bc -l)
 echo "TIME LAUNCH $tdiff"
 echo "STAMP LAUNCH END $(date --rfc-3339=ns)"
 
+## IOTA
+env LD_PRELOAD=$IOTA_LOAD "$@"
 ## IPM
-env LD_PRELOAD=$IPM_PATH/lib/libipm.so "$@"
+#env LD_PRELOAD=$IPM_PATH/lib/libipm.so "$@"
 ## STRACE
 #env $STRACE_LOG "$@"
