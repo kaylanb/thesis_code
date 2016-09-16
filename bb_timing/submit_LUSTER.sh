@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 #SBATCH -p debug
-#SBATCH -N 2
-#SBATCH -t 00:10:00
+#SBATCH -N 1
+#SBATCH -t 00:30:00
 #SBATCH -J lstr
 #SBATCH -o output.%j
 #SBATCH -e error.%j
@@ -15,6 +15,7 @@ LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch.sh"
 export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
 ncores=32
+export OMP_NUM_THREADS=$ncores
 
 export LEGACY_SURVEY_DIR=/global/cscratch1/sd/kaylanb/dr3_testdir_for_bb
 export DUST_DIR=${LEGACY_SURVEY_DIR}/dust/v0_0
@@ -31,12 +32,11 @@ set +x
 name=iota
 module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
 module unload darshan
-module load iota-ts/fd19dc9
+module load iota-ts/0520234
 ## IPM
 #name=ipm
 #module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
 #module unload darshan
-#module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
 #module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
 ## STRACE
 #name=strace
@@ -48,7 +48,7 @@ set -x
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    mydir=${name}_${SLURM_JOB_NUM_NODES}n_${process}
+    mydir=${name}${process}_${SLURM_JOB_NUM_NODES}nodes_${ncores}cores
     rm -rf ${mydir} && mkdir ${mydir}
 	cd ${mydir} && ln -s ../legacypipe legacypipe
     EXE="python legacypipe/runbrick.py \
