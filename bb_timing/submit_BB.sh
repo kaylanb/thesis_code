@@ -1,11 +1,11 @@
 #!/bin/bash -l
 
 #SBATCH -p debug
-#SBATCH -N 2
+#SBATCH -N 1
 #SBATCH -t 00:10:00
-#SBATCH -J bb_ipm
-#SBATCH -o output.%j
-#SBATCH -e error.%j
+#SBATCH -J bb
+#SBATCH -o output_bb.%j
+#SBATCH -e error_bb.%j
 #SBATCH -d singleton
 #SBATCH --mail-user=kburleigh@lbl.gov
 #SBATCH --mail-type=END,FAIL
@@ -45,18 +45,15 @@ module load iota-ts/fd19dc9
 #module load strace/4.12
 set -x
 
-export root_dir=$DW_PERSISTENT_STRIPED_tractorSmall/${name}
-rm -rf ${root_dir} && mkdir -p ${root_dir}
-
 ##python ../legacypipe/runbrick.py --zoom 1 200 1 200 --force-all --no-write --pipe --threads 1  --skip --skip-calibs  --brick 2523p355 --outdir . --nsigma 6
 
+rm -rf $DW_PERSISTENT_STRIPED_tractorSmall/timing && mkdir $DW_PERSISTENT_STRIPED_tractorSmall/timing
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    export outdir=${root_dir}/process${process}
-    mkdir -p ${outdir} && cd ${outdir} && ln -s ${SLURM_SUBMIT_DIR}/legacypipe legacypipe
+    export outdir=$DW_PERSISTENT_STRIPED_tractorSmall/timing/${name}_${SLURM_JOB_NUM_NODES}n_${process}
+    rm -rf ${outdir} && mkdir ${outdir} && cd ${outdir} && ln -s ${SLURM_SUBMIT_DIR}/legacypipe legacypipe
     EXE="python legacypipe/runbrick.py \
-            --stage tims \
-            --zoom 1 200 1 200 \
+            --zoom 1 1600 1 1600 \
             --force-all --no-write \
             --pipe \
             --threads ${ncores} \

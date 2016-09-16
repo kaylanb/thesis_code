@@ -3,7 +3,7 @@
 #SBATCH -p debug
 #SBATCH -N 2
 #SBATCH -t 00:10:00
-#SBATCH -J lstr_ipm
+#SBATCH -J lstr
 #SBATCH -o output.%j
 #SBATCH -e error.%j
 #SBATCH -d singleton
@@ -48,11 +48,11 @@ set -x
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    rm -rf ${name}${process} && mkdir ${name}${process}
-	cd ${name}${process} && ln -s ../legacypipe legacypipe
+    mydir=${name}_${SLURM_JOB_NUM_NODES}n_${process}
+    rm -rf ${mydir} && mkdir ${mydir}
+	cd ${mydir} && ln -s ../legacypipe legacypipe
     EXE="python legacypipe/runbrick.py \
-            --stage tims \
-            --zoom 1 200 1 200 \
+            --zoom 1 1600 1 1600 \
             --force-all --no-write \
             --pipe \
             --threads ${ncores} \
