@@ -17,6 +17,7 @@ LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch.sh"
 export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
 ncores=32
+export OMP_NUM_THREADS=$ncores
 
 export LEGACY_SURVEY_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3
 export DUST_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3/dust/v0_0
@@ -29,10 +30,14 @@ export DUST_DIR=$DW_PERSISTENT_STRIPED_tractorSmall/dr3/dust/v0_0
 brick=2523p355
 
 set +x
+## IOTA
 name=iota
 module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
 module unload darshan
-module load iota-ts/fd19dc9
+# IOTA production
+#module load iota-ts/c3bd61a
+# regular IOTA
+module load iota-ts/0520234
 ## IPM
 #name=ipm
 #module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
@@ -50,7 +55,7 @@ set -x
 rm -rf $DW_PERSISTENT_STRIPED_tractorSmall/timing && mkdir $DW_PERSISTENT_STRIPED_tractorSmall/timing
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    export outdir=$DW_PERSISTENT_STRIPED_tractorSmall/timing/${name}_${SLURM_JOB_NUM_NODES}n_${process}
+    outdir=$DW_PERSISTENT_STRIPED_tractorSmall/timing/${name}${process}_${SLURM_JOB_NUM_NODES}nodes_${ncores}cores
     rm -rf ${outdir} && mkdir ${outdir} && cd ${outdir} && ln -s ${SLURM_SUBMIT_DIR}/legacypipe legacypipe
     EXE="python legacypipe/runbrick.py \
             --zoom 1 1600 1 1600 \

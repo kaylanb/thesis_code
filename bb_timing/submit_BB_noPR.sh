@@ -2,23 +2,29 @@
 
 #SBATCH -p debug
 #SBATCH -N 1
-#SBATCH -t 00:30:00
-#SBATCH -J lstr
-#SBATCH -o output.%j
-#SBATCH -e error.%j
+#SBATCH -t 00:10:00
+#SBATCH -J bb
+#SBATCH -o output_bb.%j
+#SBATCH -e error_bb.%j
 #SBATCH -d singleton
 #SBATCH --mail-user=kburleigh@lbl.gov
 #SBATCH --mail-type=END,FAIL
+#DW jobdw capacity=400GB access_mode=striped type=scratch
+#DW stage_in source=/global/cscratch1/sd/kaylanb/dr3_testdir_for_bb destination=$DW_JOB_STRIPED/dr3 type=directory
+#DW stage_out source=$DW_JOB_STRIPED/timing destination=/global/cscratch1/sd/kaylanb/desi/legacypipe/py/burst_buffer type=directory
+
+cap=400
+mkdir $DW_JOB_STRIPED/timing
 
 set -x
 LAUNCH="${SLURM_SUBMIT_DIR}/sync_launch.sh"
 export CONTROL_FILE="${SLURM_SUBMIT_DIR}/control_file_${SLURM_JOBID}.txt"
 
-ncores=1
+ncores=32
 export OMP_NUM_THREADS=$ncores
 
-export LEGACY_SURVEY_DIR=/global/cscratch1/sd/kaylanb/dr3_testdir_for_bb
-export DUST_DIR=${LEGACY_SURVEY_DIR}/dust/v0_0
+export LEGACY_SURVEY_DIR=$DW_JOB_STRIPED/dr3
+export DUST_DIR=$DW_JOB_STRIPED/dr3/dust/v0_0
 
 ## Equally distributed across nodes
 #module load dws
@@ -29,18 +35,19 @@ brick=2523p355
 
 set +x
 ## IOTA
-#name=iota
-#module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
-#module unload darshan
+name=iota
+module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
+module unload darshan
 # IOTA production
-#module load iota-ts/c3bd61a
+module load iota-ts/c3bd61a
 # regular IOTA
 #module load iota-ts/0520234
 ## IPM
-name=ipm
-module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
-module unload darshan
-module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
+#name=ipm
+#module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
+#module unload darshan
+#module load ipm-wrap-more-io-kernel-stats/2.0.3-git_serial-io-preload
+#module load ipm-wrap-more-io-kernel-stats-verbose/2.0.3-git_serial-io-preload
 ## STRACE
 #name=strace
 #module use /project/projectdirs/m888/csdaley/Modules/${NERSC_HOST}/modulefiles
@@ -51,9 +58,8 @@ set -x
 
 for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
     echo "Launching process ${process}"
-    mydir=${name}${process}_${SLURM_JOB_NUM_NODES}nodes_${ncores}cores
-    rm -rf ${mydir} && mkdir ${mydir}
-	cd ${mydir} && ln -s ../legacypipe legacypipe
+    outdir=$DW_JOB_STRIPED/timing/${name}${process}_${SLURM_JOB_NUM_NODES}nodes_${ncores}cores_cap${cap}
+    rm -rf ${outdir} && mkdir ${outdir} && cd ${outdir} && ln -s ${SLURM_SUBMIT_DIR}/legacypipe legacypipe
     EXE="python legacypipe/runbrick.py \
             --zoom 1 1600 1 1600 \
             --force-all --no-write \
@@ -69,7 +75,7 @@ for process in $(seq 1 ${SLURM_JOB_NUM_NODES}); do
 	-o "output.runbrick.%j.${process}" \
 	-e "error.runbrick.%j.${process}" \
 	$LAUNCH $EXE &
-    cd ..
+    cd ${SLURM_SUBMIT_DIR}
 done
 sleep 10
 touch $CONTROL_FILE
