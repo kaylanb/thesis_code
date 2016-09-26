@@ -194,17 +194,24 @@ if __name__ == '__main__':
         if os.path.exists(f_bb) and os.path.exists(f_lstr): 
             tractor_profile_plots_multi(f_bb,f_lstr,nthreads=ncores)
     elif args.which == 'wall_vs_cores':
-        # strong scaling data
-        threads,lstr,bb= np.loadtxt(args.data_fn,dtype=str,unpack=True)
+        # Run iota_scaling.py then run this code!!
+        f_bb,f_lsrt= os.path.join(args.outdir,'iota_timings_bb.txt')),\
+                     os.path.join(args.outdir,'iota_timings_lstr.txt')),\
+        d={}
+        for key in ['bb','lstr']: 
+            d[key]={}
+            fn='iota_timings_%s.txt' % key
+            d[key]['cores'],d[key]['wall'],d[key]['machine']= np.loadtxt(fn,dtype=str,unpack=True,columns=[0,1,2])
+            # LEFT OFF HERE
 
-        data=dict(threads=np.array(threads).astype(int),lstr=np.zeros((len(lstr),3))+np.nan)
-        data['bb']= data['lstr'].copy()
-        for i in range(len(bb)):
-            data['lstr'][i,:]= np.array(lstr[i].split(':')).astype(float)
-            data['bb'][i,:]= np.array(bb[i].split(':')).astype(float)
-        for key in ['lstr','bb']:
-            data[key]= data[key][:,0]*3600 + data[key][:,1]*60 + data[key][:,2]
-            assert(np.all(np.isfinite(data[key])))
+            data=dict(threads=np.array(threads).astype(int),lstr=np.zeros((len(lstr),3))+np.nan)
+            data['bb']= data['lstr'].copy()
+            for i in range(len(bb)):
+                data['lstr'][i,:]= np.array(lstr[i].split(':')).astype(float)
+                data['bb'][i,:]= np.array(bb[i].split(':')).astype(float)
+            for key in ['lstr','bb']:
+                data[key]= data[key][:,0]*3600 + data[key][:,1]*60 + data[key][:,2]
+                assert(np.all(np.isfinite(data[key])))
 
         fig,ax=plt.subplots()
         for key,col,mark,lab in zip(['lstr','bb'],['g','b'],['o']*2,['Lustre','BB']):
