@@ -5,6 +5,7 @@ import numpy as np
 import subprocess
 import os
 from argparse import ArgumentParser
+import pickle
 
 def bash_result(cmd):
     res= subprocess.check_output(cmd,\
@@ -73,23 +74,52 @@ def add_scatter(ax,x,y,c='b',m='o',lab='hello',s=80,drawln=False):
 	ax.scatter(x,y, s=s, lw=2.,facecolors='none',edgecolors=c, marker=m,label=lab)
 	if drawln: ax.plot(x,y, c=c,ls='-')
 
-def tractor_profile_plots(mem,tm,nthreads=1):
-	name='time_v_stage_threads%d.png' % nthreads
-	fig,ax=plt.subplots()
-	xvals= np.arange(tm['stage'].size)+1
-	print tm['parallel']
-	add_scatter(ax,xvals, tm['serial']/60., c='b',m='o',lab='serial',drawln=True)
-	add_scatter(ax,xvals, tm['parallel']/60., c='g',m='o',lab='parallel',drawln=True)
-	plt.legend(loc='lower right',scatterpoints=1)
-	#add_scatter(ax,xvals, tm['total']/60., c='b',m='o',lab='total')
-	ax.set_xticks(xvals)
-	ax.set_xticklabels(tm['stage'],rotation=45, ha='right')
-	ax.set_yscale('log')
-	ax.set_ylim([1e-3,1e2])
-	xlab=ax.set_ylabel('Wall Time (min)')
-	ylab=ax.set_xlabel('Tractor Stage')
-	plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
-	plt.close()
+def tractor_profile_plots(mem,tm,nthreads=1,lstr=False):
+    '''Time vs. tractor Stage'''
+    name='time_v_stage_threads%d_bb.png' % nthreads
+    if lstr: name= name.replace('bb','lsrt')
+    fig,ax=plt.subplots()
+    xvals= np.arange(tm['stage'].size)+1
+    print tm['parallel']
+    add_scatter(ax,xvals, tm['serial']/60., c='b',m='o',lab='serial',drawln=True)
+    add_scatter(ax,xvals, tm['parallel']/60., c='g',m='o',lab='parallel',drawln=True)
+    plt.legend(loc='upper right',scatterpoints=1)
+    #add_scatter(ax,xvals, tm['total']/60., c='b',m='o',lab='total')
+    ax.set_xticks(xvals)
+    ax.set_xticklabels(tm['stage'],rotation=45, ha='right')
+    ax.set_yscale('log')
+    ax.set_ylim([1e-3,1e2])
+    xlab=ax.set_ylabel('Wall Time (min)')
+    ylab=ax.set_xlabel('Tractor Stage')
+    plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+    plt.close()
+
+def tractor_profile_plots_multi(bb_pickle,lstr_pickle,nthreads=1):
+    '''same as above:Time vs. tractor Stage
+    but multiple lines from pickle data'''
+    name='time_v_stage_threads%d_multi.png' % nthreads
+    # Get data
+    tm={}
+    for key,fn in zip(['bb','lustre'],[bb_pickle,lstr_pickle]):
+        fobj=open(fn)
+        tm[key]=pickle.load(fobj)
+        fobj.close()
+    # Plot
+    fig,ax=plt.subplots()
+    for key,col in zip(tm.keys(),['b','g']):
+        xvals= np.arange(tm[key]['stage'].size)+1
+        add_scatter(ax,xvals, (tm[key]['serial']+tm[key]['parallel'])/60., c=col,m='o',lab=key,drawln=True)
+        #add_scatter(ax,xvals, tm['total']/60., c='b',m='o',lab='total')
+    plt.legend(loc='upper right',scatterpoints=1)
+    ax.set_xticks(xvals)
+    ax.set_xticklabels(tm[key]['stage'],rotation=45, ha='right')
+    ax.set_yscale('log')
+    #ax.set_ylim([1e-2,1e1])
+    xlab=ax.set_ylabel('Wall Time (min)')
+    ylab=ax.set_xlabel('Tractor Stage')
+    plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+    plt.close()
+
 
 def plot_wall_node(d):
     name='wall_v_nodes.png'
@@ -119,6 +149,8 @@ if __name__ == '__main__':
     parser = ArgumentParser(description="test")
     parser.add_argument("--which",choices=['wall_vs_stage','wall_vs_cores','wall_vs_nodes'],action="store",required=True)
     parser.add_argument("--data_fn",action="store",help='wall_vs_stage: stdout file, wall_vs_cores: text file output of ipm_scaling.py, wall_vs_nodes: text file output of ipm_scaling.py',required=True)
+    parser.add_argument("--lstr",action="store_true",help='set to interpret file as from LUSTRE, otherwise assumed from BurstBuffer',required=False)
+    parser.add_argument("--outdir",action="store",help='where to write outputs',default='.',required=False)
     args = parser.parse_args()
 
     if args.which == 'wall_vs_stage':
@@ -141,13 +173,26 @@ if __name__ == '__main__':
         # plots
         ncores= str(bash_result("grep 'Command-line args:' %s|cut -d ',' -f 11|tail -n 1" % args.data_fn) )
         ncores= int( ncores.replace('"','').replace("'",'') )
-        # append info to file
+        # write timing info to text file and create a pickle file
         fout=open('stage_timings.txt','a')
         fout.write('#nodes cores times[sec]:tims fitblobs total\n')
         fout.write('1 %d %.2f %.2f %.2f\n' % (ncores,tm['total'][0],tm['total'][4],tm['total'].sum()))
         fout.close()
+        fn='wall_vs_stage_bb.pickle'
+        print 'args.lstr= ',args.lstr
+        if args.lstr: 
+            print 'fn= ',fn
+            fn=fn.replace('bb','lstr')
+            print 'fn= ',fn
+        fout=open(fn,'w')
+        pickle.dump(tm,fout)
+        fout.close()
         # plot
-        tractor_profile_plots(mem,tm,nthreads=ncores)
+        tractor_profile_plots(mem,tm,nthreads=ncores,lstr=args.lstr)
+        f_bb,f_lstr= os.path.join(args.outdir,'wall_vs_stage_bb.pickle'),\
+                     os.path.join(args.outdir,'wall_vs_stage_lstr.pickle')
+        if os.path.exists(f_bb) and os.path.exists(f_lstr): 
+            tractor_profile_plots_multi(f_bb,f_lstr,nthreads=ncores)
     elif args.which == 'wall_vs_cores':
         # strong scaling data
         threads,lstr,bb= np.loadtxt(args.data_fn,dtype=str,unpack=True)
