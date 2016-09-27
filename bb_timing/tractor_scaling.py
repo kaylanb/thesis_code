@@ -195,32 +195,30 @@ if __name__ == '__main__':
             tractor_profile_plots_multi(f_bb,f_lstr,nthreads=ncores)
     elif args.which == 'wall_vs_cores':
         # Run iota_scaling.py then run this code!!
-        f_bb,f_lsrt= os.path.join(args.outdir,'iota_timings_bb.txt')),\
-                     os.path.join(args.outdir,'iota_timings_lstr.txt')),\
+        # bash_result("chmod u+x ~/repos/thesis_code/bb_timing/iota_scaling.py")
+        # bash_result("for i in `ls ../bb_vs_lustre_production/lstr_iota1_1nodes_*cores/output.runbrick.*.1`; do ~/repos/thesis_code/bb_timing/iota_scaling.py --stdout $i --lstr;done")
         d={}
         for key in ['bb','lstr']: 
             d[key]={}
-            fn='iota_timings_%s.txt' % key
-            d[key]['cores'],d[key]['wall'],d[key]['machine']= np.loadtxt(fn,dtype=str,unpack=True,columns=[0,1,2])
-            # LEFT OFF HERE
-
-            data=dict(threads=np.array(threads).astype(int),lstr=np.zeros((len(lstr),3))+np.nan)
-            data['bb']= data['lstr'].copy()
-            for i in range(len(bb)):
-                data['lstr'][i,:]= np.array(lstr[i].split(':')).astype(float)
-                data['bb'][i,:]= np.array(bb[i].split(':')).astype(float)
-            for key in ['lstr','bb']:
-                data[key]= data[key][:,0]*3600 + data[key][:,1]*60 + data[key][:,2]
-                assert(np.all(np.isfinite(data[key])))
-
+            d[key]['fn']=os.path.join(args.outdir,'iota_timings_%s.txt' % key)
+            d[key]['cores'],d[key]['wall'],d[key]['machine']= np.loadtxt(d[key]['fn'],dtype=str,unpack=True,usecols=[0,1,2])
+            for nm in ['cores','wall']:
+                d[key][nm]= d[key][nm].astype(float)
+            isort= np.argsort(d[key]['cores'])
+            for nm in d[key].keys():
+                if nm == 'fn': 
+                    continue
+                else:
+                    d[key][nm]= d[key][nm][isort]
+        # Plot
         fig,ax=plt.subplots()
-        for key,col,mark,lab in zip(['lstr','bb'],['g','b'],['o']*2,['Lustre','BB']):
-            add_scatter(ax,data['threads'], data[key]/60., c=col,m=mark,lab=lab)
+        for key,col,mark,lab in zip(['lstr','bb'],['b','g'],['o']*2,['lustre','bb']):
+            add_scatter(ax,d[key]['cores'], d[key]['wall']/60., c=col,m=mark,lab=lab,drawln=True)
         ax.legend(loc='upper right',scatterpoints=1)
-        ax.set_xticks(data['threads'])
-        xlab=ax.set_xlabel('Threads')
+        ax.set_xticks(d[key]['cores'])
+        xlab=ax.set_xlabel('Cores')
         ylab=ax.set_ylabel('Wall Time (min)')
-        plt.savefig('strong_scaling.png', bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+        plt.savefig('strong_scaling_cores.png', bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
         plt.close()
     elif args.which == 'wall_vs_nodes':
         a= np.loadtxt(args.data_fn,dtype=float,usecols=range(11))
