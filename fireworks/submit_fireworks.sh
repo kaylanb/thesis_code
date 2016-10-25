@@ -3,28 +3,31 @@
 #SBATCH -p debug
 #SBATCH -N 1
 #SBATCH -t 00:10:00
-#SBATCH -J lstr
-#SBATCH -o output.%j
-#SBATCH -e error.%j
-#SBATCH -d singleton
-#SBATCH --mail-user=kburleigh@lbl.gov
-#SBATCH --mail-type=END,FAIL
+#SBATCH -J job
+#SBATCH -L SCRATCH
 
-module unload python
-module load fireworks python
+#module unload python
+#module load fireworks python
+#export CRAY_ROOTFS=UDI
+#export SHIFTER_RUNTIME=1
+
+srun -n 1 -N 1 -c 1 -b /bin/bash -l -c "rlaunch -l /global/homes/k/kaylanb/repos/thesis_code/fireworks/my_launchpad.yaml rapidfie" # --nlaunches infinite"
+
+#qlaunch rapidfire -m 2 --nlaunches infinite
+
 #lpad init
 #localhost = mongodb03
 #username= db_name+admin
 
-ncores=32
-brick=2523p355
-zoom=1600
-export OMP_NUM_THREADS=$ncores
-export LEGACY_SURVEY_DIR=/global/cscratch1/sd/kaylanb/dr3_testdir_for_bb
-export DUST_DIR=${LEGACY_SURVEY_DIR}/dust/v0_0
-
-chmod u+x add_firworks.py
-./add_fireworks.py
+#ncores=32
+#brick=2523p355
+#zoom=1600
+#export OMP_NUM_THREADS=$ncores
+#export LEGACY_SURVEY_DIR=/global/cscratch1/sd/kaylanb/dr3_testdir_for_bb
+#export DUST_DIR=${LEGACY_SURVEY_DIR}/dust/v0_0
+#
+#chmod u+x add_firworks.py
+#./add_fireworks.py
 
 #mydir=$SLURM_SUBMIT_DIR/cores${ncores}_zoom${zoom}
 #rm -rf ${mydir} && mkdir -p ${mydir}

@@ -10,10 +10,16 @@ def bash(cmd):
         print 'command failed: %s' % cmd
         sys.exit() 
 
+def read_lines(fn):
+    fin=open(fn,'r')
+    lines=fin.readlines()
+    fin.close()
+    return lines
+
 parser = ArgumentParser(description="test")
 parser.add_argument("--file_list",action="store",required=True)
-parser.add_argument("--outdir",action="store",required=True)
-parser.add_argument("--script",action="store",help='absolute path to script.py',required=True)
+parser.add_argument("--outdir",action="store",required=False)
+parser.add_argument("--script",action="store",help='absolute path to script.py',required=False)
 parser.add_argument("--cores",type=int,action="store",default='32',required=False)
 parser.add_argument("--brick",action="store",default='2523p355',required=False)
 parser.add_argument("--zoom",type=int,action="store",default='1600',required=False)
@@ -23,8 +29,8 @@ launchpad= LaunchPad(host="mongodb01",name="tractor_fireworks",username="tractor
 launchpad.reset('', require_password=False)
 
 fns= read_lines(args.file_list)
-for fn in fns:
-    cmd="python %s --images %s" % (args.script,fn)
+for cnt,fn in enumerate(fns):
+    cmd="python sleep_on_it.py %d" % cnt #(args.script,fn)
     firetask= ScriptTask.from_str(cmd)
     firework= Firework(firetask, name=os.path.basename(fn))
     launchpad.add_wf(firework)

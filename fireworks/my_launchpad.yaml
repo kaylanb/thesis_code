@@ -1,0 +1,5 @@
+host: mongodb01.nersc.gov
+port: 49170
+name: tractor_fireworks
+username: tractor_fireworks_admin
+password: w2e23sddf21
