@@ -193,6 +193,24 @@ if __name__ == '__main__':
                      os.path.join(args.outdir,'wall_vs_stage_lstr.pickle')
         if os.path.exists(f_bb) and os.path.exists(f_lstr): 
             tractor_profile_plots_multi(f_bb,f_lstr,nthreads=ncores)
+    elif args.which == 'wall_vs_stage_multinode':
+        # parse stdout and read data into numpy arrays
+        ftime= os.path.join(os.path.dirname(args.data_fn),\
+                            os.path.basename(args.data_fn)+'_time.txt')
+        # multi node
+        # grep "runbrick.py starting at" bb_multi.o2907746
+        # grep "Stage writecat finished:" bb_multi.o2907746
+        for fn in [ftime]:
+            if os.path.exists(fn):
+                print 'using existing file: %s' % fn
+            else:
+                bash_result("grep 'Resources for' %s -A 2|grep -e 'Wall:' -e 'Resources' > %s_mem.txt" % (args.data_fn,args.data_fn))
+                bash_result("grep -e 'Resources for stage' -e 'Total serial Wall' -e 'Total parallel Wall' -e 'Grand total Wall' -e 'Grand total CPU utilization' %s > %s_time.txt" % (args.data_fn,args.data_fn))
+        mem=parse_tractor_profile(fmem)
+        tm=parse_tractor_profile(ftime)
+        # plots
+        ncores= str(bash_result("grep 'Command-line args:' %s|cut -d ',' -f 11|tail -n 1" % args.data_fn) )
+        ncores= int( ncores.replace('"','').replace("'",'') )
     elif args.which == 'wall_vs_cores':
         # Run iota_scaling.py then run this code!!
         # bash_result("chmod u+x ~/repos/thesis_code/bb_timing/iota_scaling.py")
