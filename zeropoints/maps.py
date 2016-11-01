@@ -1,4 +1,5 @@
 
+import numpy as np
 def a2j(key):
     d= dict(arawgain='gain',\
             ccddec='dec_bore',\
@@ -43,7 +44,7 @@ def lims_for_key(key):
             ccdskyrms='none',\
             ccdtransp='none',\
             ccdzpt=0.05,\
-            zpt=0.05,\
+            zpt=0.02,\
             filename='none',\
             naxis1='none',\
             naxis2='none')
@@ -57,3 +58,17 @@ def a_not_in_j():
     
 def j_not_in_a():
     return ['camera','expid','pixscale']
+
+def convert_j2a(j,key):
+    '''multiply john's number by this to convert to arjuns'''
+    plus= dict(phoffadfafd=2.5*np.log10(j.get('gain')),\
+            )
+    mult= dict(phoffaggg=j.get('gain'),\
+               skycountsadfa=1./j.get('exptime')
+            )
+    if key in plus.keys():
+        return j.get(key)+plus[key]
+    elif key in mult.keys():
+        return j.get(key)*mult[key]
+    else:
+        return j.get(key)
