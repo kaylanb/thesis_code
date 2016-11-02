@@ -21,6 +21,15 @@ def tractor_cat(fn):
 	for key in temp.columns(): data[key]= temp.get(key)
 	return data
 
+def bricks_near_radec(ra,dec,d_ra=1.,d_dec=1.):
+	'''given bricks table, return all bricknames with brick centers [ra-d_ra,ra+d_ra],[dec-d_dec,dec+d_dec]'''
+	b=fits_table('survey-bricks.fits.gz')
+	ra1,ra2= ra-d_ra, ra+d_ra
+	dec1,dec2= dec-d_dec, dec+d_dec
+	ind= np.all((b.get('ra') >= ra1,b.get('ra') <= ra2,b.get('dec') >= dec1,b.get('dec') <= dec2),axis=0)
+	print 'these bricks have centers between %.1f < ra < %.1f and %.1f < dec < %.1f' % (ra1,ra2,dec1,dec2)
+	return b.get('brickname')[ind]
+
 def overlap_bricks(bricks_fn,ra,dec,dx):
     '''given bricks table, return all bricknames with brick centers [ra-dx,ra+dx],[dec-dx,dec+dx]'''
     b=fits_table(bricks_fn)
