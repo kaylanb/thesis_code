@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Translator(object):
     def __init__(self,j,a):
@@ -26,8 +27,11 @@ class Translator(object):
         for key in a.get_columns():
             if key not in vals:
                 print '%s' % key
+                
+    def compare(self):
         # Comparisons
         self.compare_strings()
+        self.compare_floats_ints()
             
         
     def map_a2j(self,key):
@@ -97,5 +101,35 @@ class Translator(object):
         for s_key in self.typ['strs']:
             print '%s:%s --> %s:%s' % (s_key, self.j.get(s_key)[0],\
                                        self.j2a[s_key], self.a.get( self.j2a[s_key] )[0])
+            
+    def compare_floats_ints(self):
+        panels=len(self.typ['floats'])+len(self.typ['ints'])
+        cols=3
+        if panels % cols == 0:
+            rows=panels/cols
+        else:
+            rows=panels/cols+1
+        # print cols,rows
+        fig,axes= plt.subplots(rows,cols,figsize=(20,30))
+        ax=axes.flatten()
+        plt.subplots_adjust(hspace=0.4,wspace=0.3)
+        cnt=-1
+        for key in self.typ['floats']+self.typ['ints']:
+            cnt+=1
+            arjun= self.a.get( self.j2a[key] )
+            john= self.j.get(key)
+            y= (arjun-john)/john
+            if key in ['transp','raoff','decoff','rarms','decrms',\
+                       'phrms','phoff','skyrms','skycounts',\
+                       'nstar','nmatch','width','height']:
+                ax[cnt].scatter(john,arjun)
+                ylab=ax[cnt].set_ylabel('Arjun',fontsize='small')
+            else:
+                ax[cnt].scatter(john,y) 
+                ylab=ax[cnt].set_ylabel('(Arjun-John)/John',fontsize='small')
+                ax[cnt].set_ylim([-0.1,0.1])
+            xlab=ax[cnt].set_xlabel('%s (John)' % key,fontsize='small')
+        # plt.savefig("test.png",\
+        #             bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
             
 
