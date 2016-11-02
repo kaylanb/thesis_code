@@ -1,0 +1,12 @@
+# three cmd line apis once fireworks is module loaded
+lpad -- modify the db
+rlaunch -- run a job from top of db
+qlaunch -- submit jobs to compute nodes using QAdapter objects
+
+# Docs
+https://github.com/materialsproject/fireworks
+http://www.nersc.gov/users/data-analytics/workflow-tools/fireworks/
+# Email support
+fireworkflows@googlegroups.com
+# their website
+https://groups.google.com/forum/#!forum/fireworkflows

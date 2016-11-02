@@ -1,0 +1,13 @@
+_fw_name: CommonAdapter
+_fw_q_type: SLURM
+rocket_launch: rlaunch -w /path/to/fireworker_file -l /path/to/launchpad_file rapidfire
+nnodes: 1
+ppnode: 1
+walltime: '00:20:00'
+queue: debug
+account: null
+job_name: null
+logdir: /path/to/fw_logs/
+pre_rocket: null
+post_rocket: null
+

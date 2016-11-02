@@ -121,7 +121,7 @@ class Translator(object):
             y= (arjun-john)/john
             if key in ['transp','raoff','decoff','rarms','decrms',\
                        'phrms','phoff','skyrms','skycounts',\
-                       'nstar','nmatch','width','height']:
+                       'nstar','nmatch','width','height','mdncol']:
                 ax[cnt].scatter(john,arjun)
                 ylab=ax[cnt].set_ylabel('Arjun',fontsize='small')
             else:

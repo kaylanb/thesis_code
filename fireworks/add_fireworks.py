@@ -1,4 +1,12 @@
 #! /usr/bin/env python
+'''
+This is a script that does the equivalent of for all the jobs I want to run:
+spec:
+ _tasks:
+ - _fw_name: ScriptTask
+script: srun -n 1 python script.py 10
+
+'''
 
 import os
 from argparse import ArgumentParser
