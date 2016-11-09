@@ -1,5 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
+import os
+
+
+from astrometry.util.fits import fits_table
 
 class Translator(object):
     def __init__(self,j,a):
@@ -132,4 +137,51 @@ class Translator(object):
         # plt.savefig("test.png",\
         #             bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
             
-
+    def save(self,savefn='translate.pickle'):
+        if hasattr(self,'j2a'):
+            self.savefn= savefn
+            fout=open(self.savefn,'w')
+            pickle.dump(self.j2a,fout)
+            fout.close()
+            print('Wrote %s' % self.savefn)
+        else: 
+            raise ValueError('not translation dictionary: self.j2a')
+    
+    def restore(self):
+        if hasattr(self,'savefn'):
+            fin=open(fn,'r')
+            my_dict= pickle.load(fin)
+            fin.close()
+            return my_dict
+        else: 
+            raise ValueError('file has not been written to be restored')
+            
+    def rename_john_zptfile(self,fn=None):
+        assert(fn is not None)
+#         mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
+#         fn= os.path.join(mydir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits')
+        j= fits_table(fn)
+        jcopy= fits_table(fn)
+        # Remove johns keys
+        for key in self.j2a.keys():
+            j.delete_column(key)
+        # Replace with arjun's keys, but John's data for that key
+        for key in self.j2a.keys():
+            j.set(self.j2a[key], jcopy.get(key))
+        name= fn.replace('.fits','_renamed.fits')
+        if os.path.exists(name):
+            os.remove(name)
+        j.writeto(name)
+        print('Wrote renamed file: %s' % name)
+        
+        
+if __name__ == '__main__':
+    # python translate.py johns_ccds_file.fits 
+    import sys
+#     fn_torename= sys.argv[1]
+    mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
+    john= fits_table(os.path.join(mydir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+    arjun= fits_table(os.path.join(mydir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+    t=Translator(john,arjun)
+    t.save(savefn='translate.pickle')
+    t.rename_john_zptfile(fn= sys.argv[1])
