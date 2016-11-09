@@ -7,9 +7,10 @@ import os
 from astrometry.util.fits import fits_table
 
 class Translator(object):
-    def __init__(self,j,a):
+    def __init__(self,j,a,verbose=True):
         self.j=j
         self.a=a
+        self.verbose=verbose
         #
         sj,sa= set(self.j.get_columns()),set(self.a.get_columns())
         self.both=list(sj.intersection(sa))
@@ -23,15 +24,16 @@ class Translator(object):
         # numeric vs. str keys
         self.float_or_str()
         # What did we miss?
-        print '----\nmissing from Johns\n----'
-        for key in j.get_columns():
-            if key not in self.j2a.keys():
-                print '%s' % key
-        vals=[v for k,v in self.j2a.items()]
-        print '----\nmissing from Arjuns\n----'
-        for key in a.get_columns():
-            if key not in vals:
-                print '%s' % key
+        if self.verbose:
+            print '----\nmissing from Johns\n----'
+            for key in j.get_columns():
+                if key not in self.j2a.keys():
+                    print '%s' % key
+            vals=[v for k,v in self.j2a.items()]
+            print '----\nmissing from Arjuns\n----'
+            for key in a.get_columns():
+                if key not in vals:
+                    print '%s' % key
                 
     def compare(self):
         # Comparisons
@@ -79,9 +81,10 @@ class Translator(object):
             except KeyError:
                 pass # Missing this key, will find these later
         self.j2a=j2a
-        print 'John --> Arjun'
-        for key in self.j2a.keys():
-            print '%s --> %s' % (key,self.j2a[key])
+        if self.verbose:
+            print 'John --> Arjun'
+            for key in self.j2a.keys():
+                print '%s --> %s' % (key,self.j2a[key])
     
     def float_or_str(self):
         self.typ=dict(floats=[],ints=[],strs=[])
@@ -123,20 +126,19 @@ class Translator(object):
             cnt+=1
             arjun= self.a.get( self.j2a[key] )
             john= self.j.get(key)
-            y= (arjun-john)/john
-            if key in ['transp','raoff','decoff','rarms','decrms',\
-                       'phrms','phoff','skyrms','skycounts',\
-                       'nstar','nmatch','width','height','mdncol']:
-                ax[cnt].scatter(john,arjun)
-                ylab=ax[cnt].set_ylabel('Arjun',fontsize='small')
-            else:
-                ax[cnt].scatter(john,y) 
-                ylab=ax[cnt].set_ylabel('(Arjun-John)/John',fontsize='small')
-                ax[cnt].set_ylim([-0.1,0.1])
+            #if key in ['transp','raoff','decoff','rarms','decrms',\
+            #           'phrms','phoff','skyrms','skycounts',\
+            #           'nstar','nmatch','width','height','mdncol']:
+            ax[cnt].scatter(john,arjun) 
+            ylab=ax[cnt].set_ylabel('Arjun',fontsize='small')
+            #y= (arjun-john)/john
+            #ax[cnt].scatter(john,y) 
+            #ylab=ax[cnt].set_ylabel('(Arjun-John)/John',fontsize='small')
+            #ax[cnt].set_ylim([-0.1,0.1])
             xlab=ax[cnt].set_xlabel('%s (John)' % key,fontsize='small')
         # plt.savefig("test.png",\
         #             bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
-            
+         
     def save(self,savefn='translate.pickle'):
         if hasattr(self,'j2a'):
             self.savefn= savefn
@@ -155,7 +157,26 @@ class Translator(object):
             return my_dict
         else: 
             raise ValueError('file has not been written to be restored')
-            
+    
+
+class Converter(object):
+    def __init__(self):
+        self.indir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data/original'
+        # Build translation with existing data
+        j= fits_table(os.path.join(self.indir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+        a= fits_table(os.path.join(self.indir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+        self.trans=Translator(j,a,verbose=False)
+        # Apply translation to a big zpt file from John
+        # Convert it to something that matches Arjuns
+        
+    def convert_j2a(self,j,key):
+        if key in ['skycounts','skyrms']:
+            return j.get(key)/j.get('exptime')
+        elif key in ['skymag']:
+            return j.get(key)-2.5*np.log10(j.get('gain'))
+        else:
+            return j.get(key)
+
     def rename_john_zptfile(self,fn=None):
         assert(fn is not None)
 #         mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
@@ -163,25 +184,64 @@ class Translator(object):
         j= fits_table(fn)
         jcopy= fits_table(fn)
         # Remove johns keys
-        for key in self.j2a.keys():
+        for key in self.trans.j2a.keys():
             j.delete_column(key)
         # Replace with arjun's keys, but John's data for that key
-        for key in self.j2a.keys():
-            j.set(self.j2a[key], jcopy.get(key))
+        for key in self.trans.j2a.keys():
+            j.set(self.trans.j2a[key], jcopy.get(key))
+        # Convert quantities to Arjuns based on empirical corrections 
+        for key in ['skycounts','skyrms','skymag']:
+            print('BEFORE: key=%s,j.get(key)[:4]=' % self.trans.j2a[key],j.get(self.trans.j2a[key])[:4])
+            j.set(self.trans.j2a[key], self.convert_j2a(jcopy,key))
+            print('AFTERE: key=%s,j.get(key)[:4]=' % self.trans.j2a[key],j.get(self.trans.j2a[key])[:4])
+        # Save
         name= fn.replace('.fits','_renamed.fits')
         if os.path.exists(name):
             os.remove(name)
         j.writeto(name)
         print('Wrote renamed file: %s' % name)
-        
+    
+    def compare_problematic(self):
+        # Assumes j results from self.rename_john_zptfile() 
+        j=fits_table('/project/projectdirs/desi/users/burleigh/test_data/old/john_combined_renamed.fits')
+        a=fits_table('/project/projectdirs/desi/users/burleigh/test_data/old/arjun_combined.fits')
+        # Compare
+        discrep_keys=['zpt','zptavg',\
+                  'skycounts','skyrms','skymag',\
+                  'transp','phoff','rarms','decrms','raoff','decoff']
+               
+        panels=len(discrep_keys)
+        cols=3
+        if panels % cols == 0:
+            rows=panels/cols
+        else:
+            rows=panels/cols+1
+        fig,axes= plt.subplots(rows,cols,figsize=(20,10))
+        ax=axes.flatten()
+        plt.subplots_adjust(hspace=0.4,wspace=0.3)
+        cnt=-1
+        for key in discrep_keys:
+            cnt+=1
+            arjun= a.get( self.trans.j2a[key] )
+            john= j.get( self.trans.j2a[key] )
+            if key == 'skymag':
+                arjun=arjun[ j.get('exptime') > 50]
+                john=john[ j.get('exptime') > 50]
+            ax[cnt].scatter(john,arjun)
+            ylab=ax[cnt].set_ylabel('Arjun',fontsize='large')
+            xlab=ax[cnt].set_xlabel('%s (John)' % key,fontsize='large')
+       
         
 if __name__ == '__main__':
+    c= TRANS.Converter()
+    c.trans.compare()
+    c.rename_john_zptfile(fn='/project/projectdirs/desi/users/burleigh/test_data/old/john_combined.fits')
     # python translate.py johns_ccds_file.fits 
-    import sys
+#     import sys
 #     fn_torename= sys.argv[1]
-    mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
-    john= fits_table(os.path.join(mydir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
-    arjun= fits_table(os.path.join(mydir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
-    t=Translator(john,arjun)
-    t.save(savefn='translate.pickle')
-    t.rename_john_zptfile(fn= sys.argv[1])
+#     mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
+#     john= fits_table(os.path.join(mydir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+#     arjun= fits_table(os.path.join(mydir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+#     t=Translator(john,arjun)
+#     t.save(savefn='translate.pickle')
+#     t.rename_john_zptfile(fn= sys.argv[1])
