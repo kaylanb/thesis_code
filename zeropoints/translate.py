@@ -34,6 +34,11 @@ class Translator(object):
             for key in a.get_columns():
                 if key not in vals:
                     print '%s' % key
+        # Problematic keys
+        self.discrep_keys=['zpt','zptavg',\
+                           'skycounts','skyrms','skymag',\
+                           'transp','phoff','rarms','decrms',\
+                           'raoff','decoff']
                 
     def compare(self):
         # Comparisons
@@ -129,16 +134,46 @@ class Translator(object):
             #if key in ['transp','raoff','decoff','rarms','decrms',\
             #           'phrms','phoff','skyrms','skycounts',\
             #           'nstar','nmatch','width','height','mdncol']:
-            ax[cnt].scatter(john,arjun) 
-            ylab=ax[cnt].set_ylabel('Arjun',fontsize='small')
+            ax[cnt].scatter(arjun,(john-arjun)/arjun) 
+            ylab=ax[cnt].set_ylabel('(John-Arjun)/Arjun',fontsize='small')
+            xlab=ax[cnt].set_xlabel('%s (Arjun)' % self.j2a[key],fontsize='small')
             #y= (arjun-john)/john
             #ax[cnt].scatter(john,y) 
             #ylab=ax[cnt].set_ylabel('(Arjun-John)/John',fontsize='small')
             #ax[cnt].set_ylim([-0.1,0.1])
-            xlab=ax[cnt].set_xlabel('%s (John)' % key,fontsize='small')
-        # plt.savefig("test.png",\
-        #             bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
-         
+        fn="float_comparison.png"
+        plt.savefig(fn,\
+                    bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+        print('Wrote %s' % fn)
+ 
+    def compare_problematic(self):
+        print('comparing problematic')
+        # Compare
+        panels=len(self.discrep_keys)
+        cols=3
+        if panels % cols == 0:
+            rows=panels/cols
+        else:
+            rows=panels/cols+1
+        fig,axes= plt.subplots(rows,cols,figsize=(20,10))
+        ax=axes.flatten()
+        plt.subplots_adjust(hspace=0.4,wspace=0.3)
+        cnt=-1
+        for key in self.discrep_keys:
+            cnt+=1
+            arjun= self.a.get( self.j2a[key] )
+            john= self.j.get(key)
+            #if key == 'skymag':
+            #    arjun=arjun[ self.j.get('exptime') > 50]
+            #    john=john[ self.j.get('exptime') > 50]
+            ax[cnt].scatter(john,arjun)
+            ylab=ax[cnt].set_ylabel('%s (Arjun)' % self.j2a[key],fontsize='large')
+            xlab=ax[cnt].set_xlabel('%s (John)' % key,fontsize='large')
+        fn="problemkeys_comparison.png"
+        plt.savefig(fn,\
+                    bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+        print('Wrote %s' % fn)
+       
     def save(self,savefn='translate.pickle'):
         if hasattr(self,'j2a'):
             self.savefn= savefn
@@ -160,14 +195,14 @@ class Translator(object):
     
 
 class Converter(object):
-    def __init__(self):
-        self.indir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data/original'
+    def __init__(self,j_to_convert,a):
+        self.indir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data/original_backup'
         # Build translation with existing data
-        j= fits_table(os.path.join(self.indir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
-        a= fits_table(os.path.join(self.indir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
-        self.trans=Translator(j,a,verbose=False)
-        # Apply translation to a big zpt file from John
+        j_fixed= fits_table(os.path.join(self.indir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+        a_fixed= fits_table(os.path.join(self.indir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
+        self.trans=Translator(j_fixed,a_fixed,verbose=False)
         # Convert it to something that matches Arjuns
+        self.plot_converted(j_to_convert,a)
         
     def convert_j2a(self,j,key):
         if key in ['skycounts','skyrms']:
@@ -177,6 +212,29 @@ class Converter(object):
         else:
             return j.get(key)
 
+    def plot_converted(self,j_to_convert,a):
+        print('converted, now comparing')
+        panels=len(self.trans.discrep_keys)
+        cols=3
+        if panels % cols == 0:
+            rows=panels/cols
+        else:
+            rows=panels/cols+1
+        fig,axes= plt.subplots(rows,cols,figsize=(20,10))
+        ax=axes.flatten()
+        plt.subplots_adjust(hspace=0.4,wspace=0.3)
+        cnt=-1
+        for key in self.trans.discrep_keys:
+            cnt+=1
+            arjun= a.get( self.trans.j2a[key] )
+            john= self.convert_j2a(j_to_convert, key)
+            if key == 'skymag':
+                arjun=arjun[ j_to_convert.get('exptime') > 50]
+                john=john[ j_to_convert.get('exptime') > 50]
+            ax[cnt].scatter(john,arjun)
+            ylab=ax[cnt].set_ylabel('%s (Arjun)' % self.trans.j2a[key],fontsize='large')
+            xlab=ax[cnt].set_xlabel('%s (John)' % key,fontsize='large')
+            
     def rename_john_zptfile(self,fn=None):
         assert(fn is not None)
 #         mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
@@ -206,10 +264,6 @@ class Converter(object):
         j=fits_table('/project/projectdirs/desi/users/burleigh/test_data/old/john_combined_renamed.fits')
         a=fits_table('/project/projectdirs/desi/users/burleigh/test_data/old/arjun_combined.fits')
         # Compare
-        discrep_keys=['zpt','zptavg',\
-                  'skycounts','skyrms','skymag',\
-                  'transp','phoff','rarms','decrms','raoff','decoff']
-               
         panels=len(discrep_keys)
         cols=3
         if panels % cols == 0:
@@ -220,7 +274,7 @@ class Converter(object):
         ax=axes.flatten()
         plt.subplots_adjust(hspace=0.4,wspace=0.3)
         cnt=-1
-        for key in discrep_keys:
+        for key in self.trans.discrep_keys:
             cnt+=1
             arjun= a.get( self.trans.j2a[key] )
             john= j.get( self.trans.j2a[key] )
@@ -233,15 +287,59 @@ class Converter(object):
        
         
 if __name__ == '__main__':
-    c= TRANS.Converter()
-    c.trans.compare()
-    c.rename_john_zptfile(fn='/project/projectdirs/desi/users/burleigh/test_data/old/john_combined.fits')
-    # python translate.py johns_ccds_file.fits 
-#     import sys
-#     fn_torename= sys.argv[1]
-#     mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data'
-#     john= fits_table(os.path.join(mydir,'zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
-#     arjun= fits_table(os.path.join(mydir,'arjun_zeropoint-k4m_160203_015632_ooi_zd_v2.fits'))
-#     t=Translator(john,arjun)
-#     t.save(savefn='translate.pickle')
-#     t.rename_john_zptfile(fn= sys.argv[1])
+    import theValidator.catalogues as cats
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Generate a legacypipe-compatible CCDs file from a set of reduced imaging.') 
+    parser.add_argument('--camera',choices=['90prime','mosaic'],type=str,action='store',required=True) 
+    args = parser.parse_args()
+
+    # Read in files
+    mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data/'+args.camera
+    print('basedir= %s' % mydir)
+    if args.camera == 'mosaic':
+        # part='k4m_160203_015632_ooi_zd_v2'
+        part='k4m_160203_064552_ooi_zd_v2'
+        j_stars=fits_table(os.path.join(mydir,'stars-gain1.8noCorr/','stars-gain1.8noCorrzeropoint-'+part+'-stars.fits'))
+        a_stars=fits_table(os.path.join(mydir,'original/','matches-'+part+'.fits'))
+        j=fits_table(os.path.join(mydir,'stars-gain1.8noCorr/','stars-gain1.8noCorrzeropoint-'+part+'.fits'))
+        j_mzls_color= fits_table(os.path.join(mydir,'stars-gain1.8noCorr/','stars-gain1.8noCorrmzlscolorzeropoint-'+part+'.fits'))
+        a=fits_table(os.path.join(mydir,'original/','arjun_zeropoint-'+part+'.fits'))
+    elif args.camera=='90prime':
+        suffix='ksb_160211_123455_ooi_g_v1.fits'
+        a=fits_table(os.path.join(mydir,'arjun','zeropoint-'+suffix))
+        a_stars=fits_table(os.path.join(mydir,'arjun','matches-'+suffix))
+        j=fits_table(os.path.join(mydir,'kay1/','blahzeropoint-'+suffix))
+        j_stars=fits_table(os.path.join(mydir,'kay1/','blahzeropoint-'+suffix.replace('.fits','-stars.fits')))
+    # Match and compare
+    for key in ['ra','dec']: 
+        a_stars.set(key,a_stars.get('ccd_%s' % key))
+    #     j.set(key,j.get('ccd_%s' % key))
+    imatch,imiss,d2d= cats.Matcher().match_within(a_stars,j_stars)
+
+    t=Translator(j,a,verbose=True)
+    t.compare()
+    t.compare_problematic()
+
+
+#    j_cat,a_cat= [],[]
+#    # mydir='/project/projectdirs/desi/users/burleigh/test_data/old'
+#    mydir='/global/homes/k/kaylanb/repos/thesis_code/zeropoints/data/'
+#    fns=glob.glob(os.path.join(mydir,'original/originalzero*v2.fits'))
+#    for fn in fns:
+#        j_cat.append( fits_table(fn) )
+#        a_fn= os.path.join(os.path.dirname(fn), 'arjun_'+os.path.basename(fn).replace('original',''))
+#        a_cat.append( fits_table(a_fn) )
+#    # fns=glob.glob('/project/projectdirs/desi/users/burleigh/test_data/zeropoint*v2.fits')
+#    # for fn in fns:
+#    #     a_cat.append( fits_table(fn) )
+#    #     j_fn= os.path.join(os.path.dirname(fn), 'units_1arcsec_'+os.path.basename(fn))
+#    #     j_cat.append( fits_table(j_fn) )
+#    j = merge_tables(j_cat, columns='fillzero')
+#    a = merge_tables(a_cat, columns='fillzero')
+#
+#    t=Translator(j,a,verbose=False)
+#    t.compare_problematic()
+#
+#    c=Converter(j,a)    
+
