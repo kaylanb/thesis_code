@@ -22,7 +22,7 @@ from matplotlib import pyplot as plt
 
 from astroML.decorators import pickle_results
 from astroML.datasets import fetch_sdss_specgals
-from astroML.correlation import bootstrap_two_point_angular,two_point_angular
+from astroML.correlation import bootstrap_two_point_angular
 
 #----------------------------------------------------------------------
 # This function adjusts matplotlib settings for a uniform feel in the textbook.
@@ -61,4 +61,57 @@ print "data size:"
 print "  red gals: ", len(data_red)
 print "  blue gals:", len(data_blue)
 
-data,data_R= two_point_angular(data_red['ra'], data_red['dec'], bins, method='landy-szalay')
+
+#------------------------------------------------------------
+# Set up correlation function computation
+#  This calculation takes a long time with the bootstrap resampling,
+#  so we'll save the results.
+@pickle_results("correlation_functions.pkl")
+def compute_results(Nbins=16, Nbootstraps=10,  method='landy-szalay', rseed=0):
+    np.random.seed(rseed)
+    bins = 10 ** np.linspace(np.log10(1. / 60.), np.log10(6), 16)
+
+    results = [bins]
+    for D in [data_red, data_blue]:
+        results += bootstrap_two_point_angular(D['ra'],
+                                               D['dec'],
+                                               bins=bins,
+                                               method=method,
+                                               Nbootstraps=Nbootstraps)
+
+    return results
+
+(bins, r_corr, r_corr_err, r_bootstraps,
+ b_corr, b_corr_err, b_bootstraps) = compute_results()
+
+bin_centers = 0.5 * (bins[1:] + bins[:-1])
+
+#------------------------------------------------------------
+# Plot the results
+corr = [r_corr, b_corr]
+corr_err = [r_corr_err, b_corr_err]
+bootstraps = [r_bootstraps, b_bootstraps]
+labels = ['$u-r > 2.22$\n$N=%i$' % len(data_red),
+          '$u-r < 2.22$\n$N=%i$' % len(data_blue)]
+
+fig = plt.figure(figsize=(5, 2.5))
+fig.subplots_adjust(bottom=0.2, top=0.9,
+                    left=0.13, right=0.95)
+
+for i in range(2):
+    ax = fig.add_subplot(121 + i, xscale='log', yscale='log')
+
+    ax.errorbar(bin_centers, corr[i], corr_err[i],
+                fmt='.k', ecolor='gray', lw=1)
+
+    t = np.array([0.01, 10])
+    ax.plot(t, 10 * (t / 0.01) ** -0.8, ':k', linewidth=1)
+
+    ax.text(0.95, 0.95, labels[i],
+            ha='right', va='top', transform=ax.transAxes)
+    ax.set_xlabel(r'$\theta\ (deg)$')
+    if i == 0:
+        ax.set_ylabel(r'$\hat{w}(\theta)$')
+
+
+plt.show()
