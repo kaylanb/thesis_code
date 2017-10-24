@@ -1,3 +1,4 @@
+(setq tab-width 4)
 (require 'package) ;; You might already have this line
   (add-to-list 'load-path "~/.emacs.d/lisp/")
   ;;(load "github-modern-theme") 
