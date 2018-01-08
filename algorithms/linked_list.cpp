@@ -26,8 +26,7 @@ class LinkedList {
     Node * head = nullptr; //new Node(0);
     //LinkedList();
     void insert(int d);
-    //void remove(int data); 
-    void printList();
+    int remove(int d); 
 };
 
 void LinkedList::insert(int d) {
@@ -36,12 +35,24 @@ void LinkedList::insert(int d) {
   new_node->next= head; 
   head= new_node;
 }
-void LinkedList::printList() {
-  while(head) {
-    std::cout << head->data << "-->";
-    head = head->next;
+// delete the Node that has Node.data == data
+int LinkedList::remove(int d) {
+  cout << "removing data=" << d << '\n';
+  Node * curr_node = head;
+  Node * prev_node = nullptr;
+  while(curr_node) {
+    if (curr_node->data == d) {
+        if (prev_node)
+            prev_node->next= curr_node->next;
+        else
+            head = curr_node->next;
+        delete(curr_node);
+        return 0;
+    }
+    prev_node= curr_node;
+    curr_node= curr_node->next;
   }
-  std::cout << "null" << std::endl;
+  return 1;
 }
 
 void test_LinkedList() {
@@ -55,6 +66,10 @@ void test_LinkedList() {
   assert(ll.head->data == -1);
   assert(ll.head->next->data == 5);
   assert(ll.head->next->next->data == 10);
+
+  ll.remove(5);
+  assert(ll.head->data == -1);
+  assert(ll.head->next->data == 10);
 }
 
 
