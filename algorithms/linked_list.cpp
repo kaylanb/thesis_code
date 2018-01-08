@@ -2,6 +2,7 @@
 //https://www.codementor.io/codementorteam/a-comprehensive-guide-to-implementation-of-singly-linked-list-using-c_plus_plus-ondlm5azr
 #include <iostream>
 #include <array>
+#include <cassert>
 using namespace std;
 
 // Attributes:
@@ -22,24 +23,18 @@ Node::Node(int d) {
 //   head
 class LinkedList {
   public:
-    Node * head = new Node(0);
+    Node * head = nullptr; //new Node(0);
     //LinkedList();
     void insert(int d);
     //void remove(int data); 
     void printList();
 };
 
-// LinkedList::LinkedList() {
-//     head->next = nullptr;
-// } 
 void LinkedList::insert(int d) {
   cout << "inserting data=" << d << '\n';
   Node * new_node = new Node(d);
-  cout << "new_node->data= " << new_node->data << '\n';
-  cout << "new_node->next= " << new_node->next << '\n';
-  cout << "head->next= " << head->next << '\n';
-  new_node->next= head->next;
-  head->next= new_node;
+  new_node->next= head; 
+  head= new_node;
 }
 void LinkedList::printList() {
   while(head) {
@@ -49,22 +44,22 @@ void LinkedList::printList() {
   std::cout << "null" << std::endl;
 }
 
-
-int main() {
-  //Node * new_node = new Node(10);
-  //cout << "node.data=" << new_node.data;
-
+void test_LinkedList() {
   LinkedList ll;
-  //ll.printList();
 
-  array<int,3> data {10,5,-1};
-  cout << "data: \n";
-  for (int val : data)
-    cout << val << '\n';
-  
-  for (int i=0 ; i<data.size() ; ++i ) {
+  array<int,3> data {10,5,-1};  
+  for (int i=0 ; i< data.size() ; ++i ) {
     ll.insert(data[i]);
   }
+
+  assert(ll.head->data == -1);
+  assert(ll.head->next->data == 5);
+  assert(ll.head->next->next->data == 10);
+}
+
+
+int main() {
+  test_LinkedList(); 
 
   return 0;
 }
