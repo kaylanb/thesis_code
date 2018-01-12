@@ -3,7 +3,7 @@
 #include <iostream>
 #include <array>
 #include <cassert>
-using namespace std;
+#include <list>
 
 // Attributes:
 //   data, next
@@ -38,7 +38,7 @@ LinkedList::LinkedList() {
 }
 
 void LinkedList::insert(int d) {
-  cout << "inserting val=" << d << '\n';
+  std::cout << "inserting val=" << d << '\n';
   Node * new_node = new Node(d);
   new_node->next= head; 
   head= new_node;
@@ -54,13 +54,13 @@ int LinkedList::remove(int d) {
         else
             head = curr->next;
         delete(curr);
-        cout << "removed val=" << d << '\n';
+        std::cout << "removed val=" << d << '\n';
         return d;
     }
     prev= curr;
     curr= curr->next;
   }
-  cout << "WARNING, nothing with val = " << d << "to remove";
+  std::cout << "WARNING, nothing with val = " << d << "to remove";
   return 1;
 }
 
@@ -92,6 +92,7 @@ int Stack::pop() {
   head= head->next;
   int val= del_node->val;
   delete del_node;
+  std::cout << "deleting value = " << val << "\n";
   return val;
 } 
 
@@ -116,6 +117,7 @@ Queue::Queue() {
 
 // Insert at the end
 void Queue::add(int data) {
+  std::cout << "inserting val=" << data << "\n";
   Node * new_node= new Node(data);
   if (last != nullptr)
     last->next = new_node;
@@ -133,6 +135,7 @@ int Queue::pop() {
   }
   int val= del_node->val;
   delete del_node;
+  std::cout << "deleting value = " << val << "\n";
   return val;
 }
 
@@ -145,14 +148,42 @@ bool Queue::isEmpty() {
 }
 
 
+class QueueLL {
+  std::list<int> q;
 
+  public:
+    void add(int data);
+    int pop();
+    bool isEmpty();
+    int next();
+};
+
+void QueueLL::add(int data) {
+  std::cout << "adding val=" << data << "\n";
+  q.push_back(data);
+}
+
+int QueueLL::pop() {
+  int f= *q.begin();
+  q.pop_front();
+  std::cout << "deleting val = " << f << "\n";
+  return f;
+}
+
+bool QueueLL::isEmpty() {
+  return q.empty();
+}
+
+int QueueLL::next() {
+  return *q.begin();
+}
 
 
 
 void test_LinkedList() {
   LinkedList ll;
 
-  array<int,3> data {10,5,-1};  
+  std::array<int,3> data {10,5,-1};  
   for (int i=0 ; i< data.size() ; ++i ) {
     ll.insert(data[i]);
     assert(ll.next() == data[i]);
@@ -160,14 +191,14 @@ void test_LinkedList() {
   for (int i=0; i<data.size(); i++) {
     assert(ll.remove(data[i]) == data[i]);
   }
-  cout << "hey\n";
+  std::cout << "hey\n";
   assert(ll.isEmpty());
 }
 
 void test_Stack() {
   Stack s;
 
-  array<int,3> data {10,5,-1};  
+  std::array<int,3> data {10,5,-1};  
   for (int i=0 ; i< data.size() ; ++i ) {
     s.add(data[i]);
     assert(s.next() == data[i]);
@@ -179,7 +210,7 @@ void test_Stack() {
 }
 
 void test_Queue() {
-  array<int,3> data {10,5,-1};  
+  std::array<int,3> data {10,5,-1};  
   Queue q;
   
   for (int i=0; i<data.size(); i++) {
@@ -192,13 +223,29 @@ void test_Queue() {
   assert(q.isEmpty());
 }
 
+void test_QueueLL() {
+  std::array<int,3> data {10,5,-1};  
+  QueueLL q;
+  
+  for (int i=0; i<data.size(); i++) {
+    q.add(data[i]);
+    assert(q.next() == data[0]);
+  }
+  for (int i=0; i<data.size(); i++) {
+    assert(q.pop() == data[i]);
+  }
+  assert(q.isEmpty());
+}
+
 int main() {
-  cout << "linkedlist\n";
+  std::cout << "linkedlist\n";
   test_LinkedList();
-  cout << "stack\n";
+  std::cout << "stack\n";
   test_Stack(); 
-  cout << "queue\n";
+  std::cout << "queue\n";
   test_Queue(); 
+  std::cout << "queueLL\n";
+  test_QueueLL();
 
   return 0;
 }
