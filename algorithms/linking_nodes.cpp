@@ -22,17 +22,19 @@ Node::Node(int data) {
 // Attributes:
 //   head
 class LinkedList {
-  Node * head;
+  protected:
+    Node * head;
 
   public:
     LinkedList();
     void insert(int d);
     int remove(int d); 
     int next();
+    bool isEmpty();
 };
 
 LinkedList::LinkedList() {
-  head = new Node();
+  head = nullptr;
 }
 
 void LinkedList::insert(int d) {
@@ -63,8 +65,89 @@ int LinkedList::remove(int d) {
 }
 
 int LinkedList::next() {
-  return head->val;
+  if (isEmpty())
+    return NULL;
+  else
+    return head->val;
 }
+
+bool LinkedList::isEmpty() {
+  return head == nullptr;
+}
+
+
+class Stack: public LinkedList {
+
+  public:
+    void add(int data);
+    int pop();
+};
+
+void Stack::add(int data) {
+  insert(data);
+} 
+
+int Stack::pop() {
+  Node * del_node= head;
+  head= head->next;
+  int val= del_node->val;
+  delete del_node;
+  return val;
+} 
+
+
+class Queue {
+  Node * first;
+  Node * last;
+
+  public:
+    Queue();
+    void add(int data);
+    int pop();
+    int next();
+    bool isEmpty();
+};
+
+Queue::Queue() {
+  // LinkedLIst constructor
+  first= nullptr;
+  last= nullptr;
+}
+
+// Insert at the end
+void Queue::add(int data) {
+  Node * new_node= new Node(data);
+  if (last != nullptr)
+    last->next = new_node;
+  last= new_node;
+  if (first == nullptr)
+    first= new_node;
+}
+
+// remove from beginning
+int Queue::pop() {
+  Node * del_node= first;
+  first= first->next;
+  if (first == nullptr) {
+    last= nullptr;
+  }
+  int val= del_node->val;
+  delete del_node;
+  return val;
+}
+
+int Queue::next() {
+  return first->val;
+}
+
+bool Queue::isEmpty() {
+  return first == nullptr;
+}
+
+
+
+
+
 
 void test_LinkedList() {
   LinkedList ll;
@@ -77,11 +160,45 @@ void test_LinkedList() {
   for (int i=0; i<data.size(); i++) {
     assert(ll.remove(data[i]) == data[i]);
   }
-  assert(!ll.next());
+  cout << "hey\n";
+  assert(ll.isEmpty());
+}
+
+void test_Stack() {
+  Stack s;
+
+  array<int,3> data {10,5,-1};  
+  for (int i=0 ; i< data.size() ; ++i ) {
+    s.add(data[i]);
+    assert(s.next() == data[i]);
+  }
+  for (int i=data.size()-1; i>=0; --i) {
+    assert(s.pop() == data[i]);
+  }
+  assert(s.isEmpty());
+}
+
+void test_Queue() {
+  array<int,3> data {10,5,-1};  
+  Queue q;
+  
+  for (int i=0; i<data.size(); i++) {
+    q.add(data[i]);
+    assert(q.next() == data[0]);
+  }
+  for (int i=0; i<data.size(); i++) {
+    assert(q.pop() == data[i]);
+  }
+  assert(q.isEmpty());
 }
 
 int main() {
-  test_LinkedList(); 
+  cout << "linkedlist\n";
+  test_LinkedList();
+  cout << "stack\n";
+  test_Stack(); 
+  cout << "queue\n";
+  test_Queue(); 
 
   return 0;
 }
