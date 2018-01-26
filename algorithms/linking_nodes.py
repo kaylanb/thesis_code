@@ -80,12 +80,6 @@ class Queue(object):
     def __init__(self):
         self.things=[]
 
-    def __getitem__(self,i):
-        return self.things[i]
-
-    def __setitem__(self,i,val):
-        self.things[i]= val
-
     def remove(self):
         """remove from front"""
         return self.things.pop(0)
