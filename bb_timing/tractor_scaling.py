@@ -5,7 +5,6 @@ import numpy as np
 import subprocess
 import os
 from argparse import ArgumentParser
-import pickle
 
 def bash_result(cmd):
     res= subprocess.check_output(cmd,\
@@ -74,33 +73,34 @@ def add_scatter(ax,x,y,c='b',m='o',lab='hello',s=80,drawln=False):
 	ax.scatter(x,y, s=s, lw=2.,facecolors='none',edgecolors=c, marker=m,label=lab)
 	if drawln: ax.plot(x,y, c=c,ls='-')
 
-def tractor_profile_plots(mem,tm,nthreads=1,lstr=False):
-    '''Time vs. tractor Stage'''
-    name='time_v_stage_threads%d_bb.png' % nthreads
-    if lstr: name= name.replace('bb','lsrt')
+def tractor_profile_plots(mem,tm,nthreads=1):
+	name='time_v_stage_threads%d.png' % nthreads
+	fig,ax=plt.subplots()
+	xvals= np.arange(tm['stage'].size)+1
+	print tm['parallel']
+	add_scatter(ax,xvals, tm['serial']/60., c='b',m='o',lab='serial',drawln=True)
+	add_scatter(ax,xvals, tm['parallel']/60., c='g',m='o',lab='parallel',drawln=True)
+	plt.legend(loc='lower right',scatterpoints=1)
+	#add_scatter(ax,xvals, tm['total']/60., c='b',m='o',lab='total')
+	ax.set_xticks(xvals)
+	ax.set_xticklabels(tm['stage'],rotation=45, ha='right')
+	ax.set_yscale('log')
+	ax.set_ylim([1e-3,1e2])
+	xlab=ax.set_ylabel('Wall Time (min)')
+	ylab=ax.set_xlabel('Tractor Stage')
+	plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
+	plt.close()
+
+def plot_wall_node(d):
+    name='wall_v_nodes.png'
     fig,ax=plt.subplots()
-    xvals= np.arange(tm['stage'].size)+1
-    print tm['parallel']
-    add_scatter(ax,xvals, tm['serial']/60., c='b',m='o',lab='serial',drawln=True)
-    add_scatter(ax,xvals, tm['parallel']/60., c='g',m='o',lab='parallel',drawln=True)
-    plt.legend(loc='upper right',scatterpoints=1)
+    xvals= np.arange(d['nodes'].size)+1
+    add_scatter(ax,xvals, d['tims_mean']/60., c='b',m='o',lab='tims',drawln=True)
+    add_scatter(ax,xvals, d['fit_mean']/60., c='g',m='o',lab='fit',drawln=True)
+    add_scatter(ax,xvals, d['tot_mean']/60., c='k',m='o',lab='total',drawln=True)
+    plt.legend(loc='lower right',scatterpoints=1)
     #add_scatter(ax,xvals, tm['total']/60., c='b',m='o',lab='total')
     ax.set_xticks(xvals)
-    ax.set_xticklabels(tm['stage'],rotation=45, ha='right')
-    ax.set_yscale('log')
-    ax.set_ylim([1e-3,1e2])
-    xlab=ax.set_ylabel('Wall Time (min)')
-    ylab=ax.set_xlabel('Tractor Stage')
-    plt.savefig(name, bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
-    plt.close()
-
-def tractor_profile_plots_multi(bb_pickle,lstr_pickle,nthreads=1):
-    '''same as above:Time vs. tractor Stage
-    but multiple lines from pickle data'''
-    name='time_v_stage_threads%d_multi.png' % nthreads
-    # Get data
-    tm={}
-    for key,fn in zip(['bb','lustre'],[bb_pickle,lstr_pickle]):
         fobj=open(fn)
         tm[key]=pickle.load(fobj)
         fobj.close()
@@ -178,71 +178,3 @@ if __name__ == '__main__':
         fout.write('#nodes cores times[sec]:tims fitblobs total\n')
         fout.write('1 %d %.2f %.2f %.2f\n' % (ncores,tm['total'][0],tm['total'][4],tm['total'].sum()))
         fout.close()
-        fn='wall_vs_stage_bb.pickle'
-        print 'args.lstr= ',args.lstr
-        if args.lstr: 
-            print 'fn= ',fn
-            fn=fn.replace('bb','lstr')
-            print 'fn= ',fn
-        fout=open(fn,'w')
-        pickle.dump(tm,fout)
-        fout.close()
-        # plot
-        tractor_profile_plots(mem,tm,nthreads=ncores,lstr=args.lstr)
-        f_bb,f_lstr= os.path.join(args.outdir,'wall_vs_stage_bb.pickle'),\
-                     os.path.join(args.outdir,'wall_vs_stage_lstr.pickle')
-        if os.path.exists(f_bb) and os.path.exists(f_lstr): 
-            tractor_profile_plots_multi(f_bb,f_lstr,nthreads=ncores)
-    elif args.which == 'wall_vs_stage_multinode':
-        # parse stdout and read data into numpy arrays
-        ftime= os.path.join(os.path.dirname(args.data_fn),\
-                            os.path.basename(args.data_fn)+'_time.txt')
-        # multi node
-        # grep "runbrick.py starting at" bb_multi.o2907746
-        # grep "Stage writecat finished:" bb_multi.o2907746
-        for fn in [ftime]:
-            if os.path.exists(fn):
-                print 'using existing file: %s' % fn
-            else:
-                bash_result("grep 'Resources for' %s -A 2|grep -e 'Wall:' -e 'Resources' > %s_mem.txt" % (args.data_fn,args.data_fn))
-                bash_result("grep -e 'Resources for stage' -e 'Total serial Wall' -e 'Total parallel Wall' -e 'Grand total Wall' -e 'Grand total CPU utilization' %s > %s_time.txt" % (args.data_fn,args.data_fn))
-        mem=parse_tractor_profile(fmem)
-        tm=parse_tractor_profile(ftime)
-        # plots
-        ncores= str(bash_result("grep 'Command-line args:' %s|cut -d ',' -f 11|tail -n 1" % args.data_fn) )
-        ncores= int( ncores.replace('"','').replace("'",'') )
-    elif args.which == 'wall_vs_cores':
-        # Run iota_scaling.py then run this code!!
-        # bash_result("chmod u+x ~/repos/thesis_code/bb_timing/iota_scaling.py")
-        # bash_result("for i in `ls ../bb_vs_lustre_production/lstr_iota1_1nodes_*cores/output.runbrick.*.1`; do ~/repos/thesis_code/bb_timing/iota_scaling.py --stdout $i --lstr;done")
-        d={}
-        for key in ['bb','lstr']: 
-            d[key]={}
-            d[key]['fn']=os.path.join(args.outdir,'iota_timings_%s.txt' % key)
-            d[key]['cores'],d[key]['wall'],d[key]['machine']= np.loadtxt(d[key]['fn'],dtype=str,unpack=True,usecols=[0,1,2])
-            for nm in ['cores','wall']:
-                d[key][nm]= d[key][nm].astype(float)
-            isort= np.argsort(d[key]['cores'])
-            for nm in d[key].keys():
-                if nm == 'fn': 
-                    continue
-                else:
-                    d[key][nm]= d[key][nm][isort]
-        # Plot
-        fig,ax=plt.subplots()
-        for key,col,mark,lab in zip(['lstr','bb'],['b','g'],['o']*2,['lustre','bb']):
-            add_scatter(ax,d[key]['cores'], d[key]['wall']/60., c=col,m=mark,lab=lab,drawln=True)
-        ax.legend(loc='upper right',scatterpoints=1)
-        ax.set_xticks(d[key]['cores'])
-        xlab=ax.set_xlabel('Cores')
-        ylab=ax.set_ylabel('Wall Time (min)')
-        plt.savefig('strong_scaling_cores.png', bbox_extra_artists=[xlab,ylab], bbox_inches='tight',dpi=150)
-        plt.close()
-    elif args.which == 'wall_vs_nodes':
-        a= np.loadtxt(args.data_fn,dtype=float,usecols=range(11))
-        d={}
-        for ikey,key in enumerate(['nodes','cores','tims_min','tims_max','tims_mean','fit_min','fit_max','fit_mean','tot_min','tot_max','tot_mean']):
-            d[key]= a[:,ikey]
-        plot_wall_node(d)
-
-    print "done"

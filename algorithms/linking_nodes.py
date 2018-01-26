@@ -80,19 +80,28 @@ class Queue(object):
     def __init__(self):
         self.things=[]
 
+    def __getitem__(self,i):
+        return self.things[i]
+
+    def __setitem__(self,i,val):
+        self.things[i]= val
+
     def remove(self):
-        """remove from end of the list"""
-        return self.things.pop()
+        """remove from front"""
+        return self.things.pop(0)
 
     def add(self,data):
-        """add to beginning of list (so it is removed last)"""
-        self.things.insert(0,data)
+        """add to the end"""
+        self.things.append(data)
 
     def peek(self):
-        return self.things[-1]
+        return self.things[0]
     
     def isEmpty(self):
         return self.things == []
+
+    def size(self):
+        return len(self.things)
 
 class TestLinkedList(unittest.TestCase):
     def setUp(self):
