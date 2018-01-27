@@ -258,17 +258,21 @@ class MinHeap(Queue):
 
 class Vertex(object):
     """A single node with an adjanceny list"""
-    def __init__(self,key=None,payload=None):
-        self.key= key
+    def __init__(self,name=None,payload=None):
+        self.name= name
         self.payload= payload
         self.aDict= {} # Stores vertex objs
+        # Searching
+        self.color= 'w' 
+        self.parentName= None
 
-    def addConn(self,keys,wts=None):
+
+    def addConn(self,names,wts=None):
         """list of keys,wts to add"""
         if not wts:
-            wts= [1]*len(keys)
-        for key,wt in zip(keys,wts):
-            self.aDict[key]= wt
+            wts= [1]*len(names)
+        for name,wt in zip(names,wts):
+            self.aDict[name]= wt
 
 class Graph(object):
     """Set of Vertices"""
@@ -288,34 +292,47 @@ class Graph(object):
         """
         self.vDict[key]= val
 
-    def add(self,key):
-        self[key]= Vertex(key)
+    def add(self,vName):
+        self[vName]= Vertex(vName)
+
+    def print_path(self,startName):
+        v= self[startName]
+        path='%s->' % v.name
+        while v.parentName:
+            v= self[v.parentName]
+            path+= '%s->' % v.name
+        print(path)
 
 
-def BreadthFirst(graph,key_to_find):
-    """graph is connected vertices"""
+def BreadthFirst(graph,startName,findName):
     Q= Queue()
-    Q.add(graph.key)
+    v= graph[startName]
+    Q.add(v)
+    v.color='g'
     while not Q.isEmpty():
-        key= Q.remove()
-        if key == key_to_find:
-            return key
-        for child in graph.children:
-            Q.add(child)
+        checkV = Q.remove()
+        if checkV.name == findName:
+            return
+        checkV.color='b'
+        for name in checkV.aDict.keys():
+            v= graph[name]
+            if v.color == 'w':
+                Q.add(v)
+                v.color='g'
+                v.parentName= checkV.name
 
 # Do we need a Queeu?
-def DepthFirst(graph, key_to_find):
-    """graph is connected vertices"""
-    Q= Queue()
-    Q.add(graph.key)
-    while not Q.isEmpty():
-        key= Q.remove()
-        if key == key_to_find:
-            return key
-        for child in graph.children:
-            found= DepthFirst(child,key_to_find)
-            if found:
-                return found
+def DepthFirst(graph, startName,findName):
+    v= graph[startName]
+    if v.name == findName:
+        return
+    v.color='g'
+    for name in v.aDict.keys():
+        newV= graph[name]
+        if newV.color == 'w':
+            newV.parentName= v.name
+            DepthFirst(graph,newV.name,findName)
+    v.color='b'
 
 def graph_main():
     v= Vertex()
@@ -406,20 +423,32 @@ class test_Graph(unittest.TestCase):
         self.g= Graph()
         for i in range(6):
             self.g.add('V%d' % i)
-        self.g['V0'].addConn(['V1','V4','V5'])
-        self.g['V1'].addConn(['V0','V2'])
-        self.g['V2'].addConn(['V1','V5','V3'])
-        self.g['V3'].addConn(['V2','V4','V5'])
-        self.g['V4'].addConn(['V0','V3','V5'])
-        self.g['V5'].addConn(['V0','V2','V3','V4'])
+        self.g['V0'].addConn(['V1','V5'])
+        self.g['V1'].addConn(['V2'])
+        self.g['V2'].addConn(['V3'])
+        self.g['V3'].addConn(['V4','V5'])
+        self.g['V4'].addConn(['V0'])
+        self.g['V5'].addConn(['V2','V4'])
 
     def test_vertex_conn(self):
-        print('graph=',self.g.vDict)
-        print('Vertex V0= ',self.g['V0'].aDict.keys())
+        print('graph has vertices:',self.g.vDict.keys())
         #self.assertEqual(self.g['V0'],dict(V1=1,V4=1,V5=1))
-        for vName in self.g.vDict.keys():
-            for aName in self.g[vName].aDict.keys():
-                print("( %s , %s )" % (vName, aName))
+        for name in self.g.vDict.keys():
+            print("%s connected to " % name, self.g[name].aDict.keys())
+
+    def test_BFS(self):
+        print('Breadth FS')
+        findName='V0'
+        BreadthFirst(self.g,startName='V1',findName=findName)
+        self.g.print_path(findName)
+
+
+    def test_DFS(self):
+        print('DEPTH FS')
+        findName='V0'
+        DepthFirst(self.g,startName='V1',findName=findName)
+        self.g.print_path(findName)
+
 
 
 
@@ -427,6 +456,7 @@ class test_Graph(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
+    
+    
 
     
