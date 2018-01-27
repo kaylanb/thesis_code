@@ -78,11 +78,6 @@ class bstNode(BinaryTree):
     def hasBothChildren(self):
         return self.leftChild and self.rightChild
 
-    def hasOneChild(self):
-        print('hasOne, left=, right=',self.leftChild,self.rightChild)
-        return (self.leftChild and not self.rightChild) or \
-               (self.rightChild and not self.leftChild)
-
 
 class BST(object):
     def __init__(self):
@@ -126,9 +121,17 @@ class BST(object):
         else:
             return self._get(key,root.rightChild)
 
+    def getSmallest(self,node):
+        min_node= node
+        for new_node in tree:
+            if new_node.key < min_node.key:
+                min_node= new_node
+        return min_node
+
     def delete(self,key):
         """Set references to this node to None"""
         delnode= self._get(key,self.root)
+        print('left,right',delnode.leftChild,delnode.rightChild)
         if not delnode:
             raise KeyError('key=%s not in tree, cannot delete' % key)
         if delnode.isLeaf():
@@ -136,10 +139,16 @@ class BST(object):
                 delnode.parent.leftChild= None
             else:
                 delnode.parent.rightChild= None
-        print('left,right',delnode.leftChild,delnode.rightChild)
-        a=delnode.hasOneChild()
-        elif delnode.hasOneChild():
-            if delnode.isLeftChild():
+        elif delnode.hasBothChildren():
+            raise ValueError("delnode has 2 children, couldn't figure out code to delte this type of node")
+        else:
+            # One child
+            if delnode.isRoot():
+                if delnode.leftChild:
+                    delnode.overwrite_with(delnode.leftChild)
+                else:
+                    delnode.overwrite_with(delnode.rightChild)
+            elif delnode.isLeftChild():
                 if delnode.leftChild:
                     delnode.parent.leftChild= delnode.leftChild
                     delnode.leftChild.parent= delnode.parent 
@@ -154,15 +163,7 @@ class BST(object):
                     delnode.parent.rightChild= delnode.rightChild
                     delnode.rightChild.parent= delnode.parent
             else:
-                # it is root, overwrite delnode
-                if delnode.leftChild:
-                    delnode.overwrite_with(delnode.leftChild)
-                else:
-                    delnode.overwrite_with(delnode.rightChild)
-        elif delnode.hasBothChildren():
-            pass
-        else:
-            rasie ValueError('Should not be able to get here')
+                raise ValueError('shouldnt reach here')
 
 
         
@@ -255,15 +256,41 @@ class MinHeap(Queue):
         else:
             return None
 
-
 class Vertex(object):
-    def __init__(self,key=None):
+    """A single node with an adjanceny list"""
+    def __init__(self,key=None,payload=None):
         self.key= key
-        self.children= [] 
+        self.payload= payload
+        self.aDict= {} # Stores vertex objs
+
+    def addConn(self,keys,wts=None):
+        """list of keys,wts to add"""
+        if not wts:
+            wts= [1]*len(keys)
+        for key,wt in zip(keys,wts):
+            self.aDict[key]= wt
+
+class Graph(object):
+    """Set of Vertices"""
+    def __init__(self):
+        self.vDict= {}
+
+    def __getitem__(self,key):
+        """g= Graph()
+           g.vDict[key]= 10
+           a= g[key]
+        """
+        return self.vDict[key]
+
+    def __setitem__(self,key,val):
+        """g= Graph()
+           g[key]= val
+        """
+        self.vDict[key]= val
 
     def add(self,key):
-        self.children.append(Vertex(key))
-        self.children[-1].children.append(self)
+        self[key]= Vertex(key)
+
 
 def BreadthFirst(graph,key_to_find):
     """graph is connected vertices"""
@@ -336,11 +363,11 @@ class test_BST(unittest.TestCase):
     def setUp(self):
         print('test_BST')
         self.bst= BST()
-        for key,val2store in zip([5, 30, 2, 25, 4],
+        for key,val2store in zip([5, 30, 2, 25, 4,40],
                                  [None,None,None,None,'kaylan',None]):
             self.bst.insert(key,val2store)
 
-    def test_bst(self):
+    def test_bst_leaf_onechild(self):
         print('pre')
         tree_traverse(self.bst.root,how='pre')#,
         print('in')
@@ -361,6 +388,39 @@ class test_BST(unittest.TestCase):
         self.bst.delete(2)
         print('deleted 2')
         tree_traverse(self.bst.root,how='in')
+        # one child, root
+        self.bst.delete(4)
+        self.bst.delete(5)
+        print('deleted 5, one child root')
+        tree_traverse(self.bst.root,how='in')
+
+    # def test_bst_bothchildren(self):
+    #     print('both: in')
+    #     tree_traverse(self.bst.root,how='in')
+    #     self.bst.delete(30)
+    #     print('deleted 30')
+    #     tree_traverse(self.bst.root,how='in')
+
+class test_Graph(unittest.TestCase):
+    def setUp(self):
+        self.g= Graph()
+        for i in range(6):
+            self.g.add('V%d' % i)
+        self.g['V0'].addConn(['V1','V4','V5'])
+        self.g['V1'].addConn(['V0','V2'])
+        self.g['V2'].addConn(['V1','V5','V3'])
+        self.g['V3'].addConn(['V2','V4','V5'])
+        self.g['V4'].addConn(['V0','V3','V5'])
+        self.g['V5'].addConn(['V0','V2','V3','V4'])
+
+    def test_vertex_conn(self):
+        print('graph=',self.g.vDict)
+        print('Vertex V0= ',self.g['V0'].aDict.keys())
+        #self.assertEqual(self.g['V0'],dict(V1=1,V4=1,V5=1))
+        for vName in self.g.vDict.keys():
+            for aName in self.g[vName].aDict.keys():
+                print("( %s , %s )" % (vName, aName))
+
 
 
 
