@@ -1,24 +1,43 @@
+//Next steps:
+//replace type std::string (key,val2store) in BinaryNode with template for any type
+//use integer BST test case from graph.py
+//finishh BST in this cpp module
+//convert min heap to cpp
+//convert Graph BFS and DFS to cpp
+
 #include <iostream>
 
-class BinaryTree {
+class BinaryNode {
 public:
   std::string key;
-  BinaryTree * leftChild;
-  BinaryTree * rightChild;
+  BinaryNode * leftChild;
+  BinaryNode * rightChild;
+  BinaryNode * parent;
+  std::string val2store;
 
-  BinaryTree(std::string name);
+  BinaryNode(std::string Key) {key=Key;
+                               leftChild=nullptr;
+                               rightChild=nullptr;
+                               parent=nullptr;
+                               val2store="";}
+  BinaryNode(std::string Key, BinaryNode *& Parent) 
+                              {key=Key;
+                               leftChild=nullptr;
+                               rightChild=nullptr;
+                               parent=Parent;
+                               val2store="";}
   void insertLeft(std::string name);
   void insertRight(std::string name);
+  bool isLeftChild();
+  bool isRightChild();
+  bool isRoot();
+  bool isLeaf();
+  bool hasBothChildren();
+  void overwrite_with(BinaryNode *& node);
 };
 
-BinaryTree::BinaryTree(std::string name) {
-  key= name;
-  leftChild= nullptr;
-  rightChild= nullptr;
-}
-
-void BinaryTree::insertLeft(std::string name) {
-  BinaryTree * node= new BinaryTree(name);
+void BinaryNode::insertLeft(std::string name) {
+  BinaryNode * node= new BinaryNode(name);
   if (leftChild) {
     node->leftChild= leftChild;
     leftChild= node;
@@ -27,8 +46,8 @@ void BinaryTree::insertLeft(std::string name) {
   }
 }
 
-void BinaryTree::insertRight(std::string name) {
-  BinaryTree * node= new BinaryTree(name);
+void BinaryNode::insertRight(std::string name) {
+  BinaryNode * node= new BinaryNode(name);
   if (rightChild) {
     node->rightChild= rightChild;
     rightChild= node;
@@ -37,12 +56,42 @@ void BinaryTree::insertRight(std::string name) {
   }
 }
 
-void visit(BinaryTree *& node) {
+bool BinaryNode::isLeftChild() {
+  return this == this->parent->leftChild;
+}
+
+bool BinaryNode::isRightChild() {
+  return this == this->parent->rightChild;
+}
+
+bool BinaryNode::isRoot() {
+  return not this->parent;
+}
+
+bool BinaryNode::isLeaf() {
+  return (!this->leftChild) && (!this->rightChild);
+}
+
+bool BinaryNode::hasBothChildren() {
+    return (leftChild) && (rightChild);
+}
+
+void BinaryNode::overwrite_with(BinaryNode *& node) {
+  this->key= node->key;
+  this->leftChild= node->leftChild;
+  this->rightChild= node->rightChild;
+  this->val2store= node->val2store;
+  this->parent= node->parent;
+}
+
+
+
+void visit(BinaryNode *& node) {
   std::cout << node->key << "\n";
 }
 
 //how: pre,post,in
-void tree_traverse(BinaryTree *& node,
+void tree_traverse(BinaryNode *& node,
                    std::string how) {
   if (node) {
     if (how == "pre") {
@@ -61,54 +110,42 @@ void tree_traverse(BinaryTree *& node,
   }
 }
 
-
-class bstNode: BinaryTree {
+class BST {
 public:
-  BinaryTree * parent;
-  string val2store;
+  BinaryNode * root;
 
-  bstNode(std::string name);
+  BST() {root=nullptr;}
+  void insert(std::string key);
+  void _insert(std::string key, BinaryNode *& node);
 };
 
-bstNode::bstNode(std::string name) {
-  //name,leftChild,rightChild from BinaryTree
-  parent= nullptr;
-  val2store= std::string();
+void BST::insert(std::string key) {
+  if (!root)
+      root= new BinaryNode(key);
+  else
+      _insert(key,root);
 }
 
-bool isLeftChild() {
-  return this == this->parent->leftChild;
-}
-
-bool isRightChild() {
-  return this == this->parent->rightChild;
-}
-
-bool isRoot() {
-  return not this->parent;
-}
-
-bool isLeaf() {
-  return (!this->leftChild) && (!this->rightChild);
-}
-
-bool hasBothChildren() {
-    return (leftChild) && (rightChild);
-}
-
-void overwrite_with(bstNode * node) {
-  this->key= node->key;
-  this->leftChild= node->leftChild;
-  this->rightChild= node->rightChild;
-  this->val2store= node->val2store;
-  this->parent= node->parent;
+void BST::_insert(std::string key, BinaryNode *& node) {
+  if (key < node->key) {
+    if (node->leftChild)
+      _insert(key,node->leftChild);
+    else
+      node->leftChild= new BinaryNode(key,node); //parent=node
+  } 
+  else {
+    if (node->rightChild)
+      _insert(key,node->rightChild);
+    else
+      node->rightChild= new BinaryNode(key,node);//parent=node
+  }
 }
 
 
 //TESTS
 
 void test_binarytree() {
-  BinaryTree * t= new BinaryTree("A");
+  BinaryNode * t= new BinaryNode("A");
   t->insertLeft("B");
   t->insertRight("C");
   t->leftChild->insertLeft("D");
@@ -128,7 +165,22 @@ void test_binarytree() {
   tree_traverse(t,how);
 }
 
+void test_BST() {
+  std::cout << "test_BST\n";
+  BST * bst= new BST();
+  std::string keys[] = {"B", "D", "A", "C","E"};
+  for (int i=0; i<5; i++)
+    bst->insert(keys[i]);
+
+  //leaf or onechild
+  std::cout << "pre\n";
+  tree_traverse(bst->root,"pre");
+  std::cout << "in\n";
+  tree_traverse(bst->root,"in");
+}
+
 int main() {
-  test_binarytree();
+  //test_binarytree();
+  test_BST();
   return 0;
 }
