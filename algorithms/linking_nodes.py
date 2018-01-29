@@ -15,32 +15,41 @@ class LinkedList(object):
     Attributes:
         head
     """
-
     def __init__(self):
-        self.head=Node()
+        self.head= None
 
     def insert(self,data):
-        new_node= Node(data)
-        new_node.next= self.head
-        self.head= new_node
+        node= Node(data)
+        node.next= self.head
+        self.head= node
 
     def remove(self,data):
         """delete the Node that has Node.data == data"""
         curr= self.head
         prev= None
-        while(curr.next):
+        found=False
+        while (curr) and (not found):
             if curr.val == data:
-                if prev:
-                    prev.next= curr.next
-                else:
-                    self.head= curr.next
-                return curr.val
-            prev= curr
-            curr= curr.next
-        print('WARNING, nothing to remove with val = ',data)
+                found=True
+            else:
+                prev=curr
+                curr= curr.next
+        if not found:
+            print('WARNING, nothing to remove with val = ',data)
+        elif prev:
+            prev.next= curr.next
+        else:
+            self.head= curr.next  
 
-    def next(self):
-        return self.head.val
+    def isEmpty(self):
+        return not self.head      
+
+
+def printList(node):
+    while(node):
+        print(node.val)
+        node= node.next
+
 
 class Stack(object):
     """
@@ -105,7 +114,7 @@ class TestLinkedList(unittest.TestCase):
         ll= LinkedList()
         for d in self.data:
             ll.insert(d)
-            self.assertEqual(ll.next(), d)
+            self.assertEqual(ll.head.val, d)
         for d in self.data:
             self.assertEqual(ll.remove(d),d)
         self.assertTrue(ll.next() is None)
@@ -138,4 +147,14 @@ class TestQueue(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    #unittest.main()
+    data= [10,5,-1]
+    ll= LinkedList()
+    for d in data:
+        ll.insert(d)
+    printList(ll.head)
+    for d in data:
+        ll.remove(d)
+        print('removed',d,'list=')
+        printList(ll.head)
+    assert(ll.isEmpty())
