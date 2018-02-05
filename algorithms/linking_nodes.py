@@ -1,5 +1,7 @@
 import unittest
 
+from collections import deque
+
 class Node(object):
     """
     Attributes:
@@ -50,61 +52,45 @@ def printList(node):
         print(node.val)
         node= node.next
 
-
+# WARNING: Python list is O(n) for pop() and insert()!
 class Stack(object):
-    """
-    Attributes:
-        pop
-        push
-        peek
-        isEmpty
-    """
     def __init__(self):
-        self.things= []
+        self.things=deque()
 
     def pop(self):
-        """Remove last element of list"""
         return self.things.pop()
 
     def push(self,data):
-        """add at same location that remove from"""
-        self.things.insert(len(self.things),data)
+        self.things.append(data)
+
+    def peek(self):
+        return self.things[-1]
+    
+    def isEmpty(self):
+        return len(self.things) == 0
+
+    def size(self):
+        return len(self.things)
+
+class Queue(object):
+    def __init__(self):
+        self.things= deque()
+
+    def pop(self):
+        return self.things.pop()
+
+    def push(self,data):
+        self.things.appendleft(data)
 
     def peek(self):
         return self.things[-1]
 
     def isEmpty(self):
-        return self.things == []
-
-
-class Queue(object):
-    """First in First out
-
-    Attributes:
-        remove
-        add
-        peek
-        isEmpty
-    """
-    def __init__(self):
-        self.things=[]
-
-    def remove(self):
-        """remove from front"""
-        return self.things.pop(0)
-
-    def add(self,data):
-        """add to the end"""
-        self.things.append(data)
-
-    def peek(self):
-        return self.things[0]
-    
-    def isEmpty(self):
-        return self.things == []
+        return len(self.things) == 0
 
     def size(self):
         return len(self.things)
+
 
 class TestLinkedList(unittest.TestCase):
     def setUp(self):
@@ -139,22 +125,22 @@ class TestQueue(unittest.TestCase):
     def test_add_remove(self):
         q= Queue()
         for d in self.data:
-            q.add(d)
+            q.push(d)
             self.assertEqual(q.peek(), self.data[0])
         for d in self.data:
-            self.assertEqual(q.remove(), d)
+            self.assertEqual(q.pop(), d)
         self.assertTrue(q.isEmpty())
 
 
 if __name__ == "__main__":
-    #unittest.main()
-    data= [10,5,-1]
-    ll= LinkedList()
-    for d in data:
-        ll.insert(d)
-    printList(ll.head)
-    for d in data:
-        ll.remove(d)
-        print('removed',d,'list=')
-        printList(ll.head)
-    assert(ll.isEmpty())
+    unittest.main()
+    # data= [10,5,-1]
+    # ll= LinkedList()
+    # for d in data:
+    #     ll.insert(d)
+    # printList(ll.head)
+    # for d in data:
+    #     ll.remove(d)
+    #     print('removed',d,'list=')
+    #     printList(ll.head)
+    # assert(ll.isEmpty())

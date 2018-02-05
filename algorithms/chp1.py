@@ -1,9 +1,9 @@
 def hasUniqChars(text):
-    d={}
+    lets=set()
     for t in text:
-        if t in d.keys():
+        if t in lets:
             return False
-        d[t]=1
+        lets.add(t)
     return True
 
 def isPermut(a,b):

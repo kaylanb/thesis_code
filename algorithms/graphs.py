@@ -1,5 +1,7 @@
 import unittest
 
+import heapq
+from collections import deque
 from linking_nodes import Queue
 
 class BinaryTree(object):
@@ -167,39 +169,63 @@ class BST(object):
 
 
         
+def MinHeapBuiltin(object):
+    def __init__(self):
+        self.h= []
+
+    def push(self,item):
+        heapq.heappush(self,item)
+
+    def pop(self):
+        heapq.heappop(self)
+
+def MaxHeapBuiltin(MinHeapBuiltin):
+    """Assumes numberical items
+
+    to avoid this would need define a MaxHeapObject(item)
+    that flips the __lt__ method of item
+    """
+    def __init__(self):
+        self.h=[]
+
+    def push(self,item):
+        heapq.heappush(self,-item)
+
+    def pop(self):
+        heapq.heappop(self)
 
 
-
+# Broken after I moved to 0 indexed and using deque as underlying Queue
 class MinHeap(Queue):
-    """classic way using a queue, not more intuitive binary tree
+    """Use python built in "heapq" to do this for real
+
+    I implemented the classic way below, using an array to represent
+    the tree
 
     If 1-indexed, 
     i_leftChild= i_parent*2
     i_parent= i_{left or right}Child //2
     """
-    def __init__(self):
-        super().__init__()
-        self.add(None) # 1-indexed
 
-    def remove(self):
-        return self.things.pop(1)
+    #def remove(self):
+    #    return self.things.pop(1)
 
-    def __getitem__(self,i):
-        return self.things[i]
+    # def __getitem__(self,i):
+    #    return self.things[i]
 
-    def __setitem__(self,i,val):
-        self.things[i]= val
+    # def __setitem__(self,i,val):
+    #    self.things[i]= val
 
     def insert(self,key):
-        self.add(key)
+        self.things.push(key)
         self.bubbleUp()
 
     def getMin(self):
-        mn= self.things[1]
-        if self.size() >= 3:
-            self.things[1]= self.things.pop(self.size()-1)
+        smallest= self.things[0]
+        if self.size() >= 2:
+            self.things[0]= self.things.pop()
             self.bubbleDown()
-        return mn
+        return smallest
 
     def swap(self,i,j):
         tmp= self.things[i]
@@ -222,13 +248,13 @@ class MinHeap(Queue):
             i= self.iMinChild(i)
 
     def iParent(self,i):
-        return i//2
+        return (i-1)//2
 
     def iLeftChild(self,i):
-        return i*2
+        return i*2 + 1
 
     def iRightChild(self,i):
-        return self.iLeftChild(i) + 1
+        return i*2 + 2
 
     def iMinChild(self,i):
         if self.iLeftChild(i) >= self.size():
@@ -255,6 +281,7 @@ class MinHeap(Queue):
             return self.things[self.iMinChild(i)]
         else:
             return None
+
 
 class Vertex(object):
     """A single node with an adjanceny list"""
@@ -307,21 +334,20 @@ class Graph(object):
 def BreadthFirst(graph,startName,findName):
     Q= Queue()
     v= graph[startName]
-    Q.add(v)
+    Q.push(v)
     v.color='g'
     while not Q.isEmpty():
-        checkV = Q.remove()
+        checkV = Q.pop()
         if checkV.name == findName:
             return
         checkV.color='b'
         for name in checkV.aDict.keys():
             v= graph[name]
             if v.color == 'w':
-                Q.add(v)
+                Q.push(v)
                 v.color='g'
                 v.parentName= checkV.name
 
-# Do we need a Queeu?
 def DepthFirst(graph, startName,findName):
     v= graph[startName]
     if v.name == findName:
@@ -364,17 +390,14 @@ class test_minheap(unittest.TestCase):
         self.h= MinHeap()
 
     def test_minheap(self):
-        self.h.insert('C')
-        self.h.insert('B')
-        self.h.insert('A')
+        for val in 'ABC':
+            self.h.push(val)
         print('minheap= ',self.h.things)
         #for _ in range(self.h.size()-1):
-        print(self.h.getMin())
-        print('minheap= ',self.h.things)
-        print(self.h.getMin())
-        print('minheap= ',self.h.things)
-        print(self.h.getMin())
-        print('minheap= ',self.h.things)
+        for val in 'ABC':
+            self.assertEqual(self.h.getMin(),val)
+        print(self.h)
+
         
 class test_BST(unittest.TestCase):
     def setUp(self):
@@ -451,12 +474,29 @@ class test_Graph(unittest.TestCase):
 
 
 
+class test_heapq(unittest.TestCase):
+    import heapq
+    h= []
+    for val in [('C',range(10)),
+                ('B',range(20)),
+                ('A',range(20,30))]:
+        heapq.heappush(h,val)
+    print('unsorted',h)
+    print('sorted')
+    while h:
+        minima= heapq.heappop(h)
+        print(minima[0])
 
+    import numpy as np
+    vals= np.random.randint(0,100,size=10)
+    for val in vals:
+        heapq.heappush(h,val)
+    print(vals)
+    print(heapq.nsmallest(4,h))
 
 
 if __name__ == '__main__':
     unittest.main()
-    
     
 
     

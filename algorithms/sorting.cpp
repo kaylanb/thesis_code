@@ -19,6 +19,8 @@ void print_vector_i(std::vector<int>& v,
   std::cout << "\n";
 } 
 
+// iterate through list, compare current to next, swap if <
+// repeat for len list -1 times
 void bubbleSort(std::vector<int>& v) { 
   bool need_sort=true;
   while(need_sort) {
@@ -34,6 +36,8 @@ void bubbleSort(std::vector<int>& v) {
   }
 }
 
+// iterate through array N times, put min element at front, or max at end
+// after each iteration
 void selectionSort(std::vector<int>& v) {
   for (int sweep=0; sweep<v.size(); sweep++) {
     int imin=sweep;
